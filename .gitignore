@@ -1,1 +1,5 @@
 .depend*
+*.o
+wtrd
+wtrd.debug
+wtrd.full

@@ -11,22 +11,17 @@
 #include <string.h>
 #include <unistd.h>
 
-struct {
-	const char *root;
-	unsigned int active;
-} roots[] = {
-	{ "/usr/home/romain/Projects/FreeBSD",    0 },
-	{ "/usr/home/romain/Projects/choria-io",  0 },
-	{ "/usr/home/romain/Projects/puppetlabs", 0 },
-	{ "/usr/home/romain/Projects/riemann",    0 },
-	{ "/usr/home/romain/Projects/voxpupuli",  0 },
-	{ "/usr/home/romain/Projects/wtr",        0 },
-};
+#include <glib.h>
+#include <glib-unix.h>
+
+#include "config.h"
+
+GMainLoop *main_loop;
 
 void
 process_working_directory(const char *working_directory)
 {
-	for (unsigned int i = 0; i < sizeof(roots) / sizeof(*roots); i++) {
+	for (int i = 0; i < nroots; i++) {
 		if (strnstr(working_directory, roots[i].root, strlen(roots[i].root)) == working_directory &&
 		    (working_directory[strlen(roots[i].root)] == '/' ||
 		     working_directory[strlen(roots[i].root)] == '\0')) {
@@ -88,9 +83,9 @@ void
 print_wd(void)
 {
 	printf("----\n");
-	for (unsigned int i = 0; i < sizeof(roots) / sizeof(*roots); i++) {
+	for (int i = 0; i < nroots; i++) {
 		if (roots[i].active) {
-			printf("%s\n", roots[i].root);
+			printf("%s\n", roots[i].name);
 		}
 	}
 }
@@ -98,20 +93,44 @@ print_wd(void)
 void
 reset_wd(void)
 {
-	for (unsigned int i = 0; i < sizeof(roots) / sizeof(*roots); i++) {
+	for (int i = 0; i < nroots; i++) {
 		roots[i].active = 0;
 	}
+}
+
+gboolean
+tick(gpointer user_data)
+{
+	reset_wd();
+	each_user_process(each_process_working_directory, process_working_directory);
+	print_wd();
+
+	return TRUE;
+}
+
+gboolean
+terminate(gpointer user_data)
+{
+	g_main_loop_quit(main_loop);
+
+	return TRUE;
 }
 
 int
 main(void)
 {
-	for (;;) {
-		reset_wd();
-		each_user_process(each_process_working_directory, process_working_directory);
-		print_wd();
-		sleep(1);
+	if (config_load() < 0) {
+		exit(1);
 	}
+
+	main_loop = g_main_loop_new(NULL, FALSE);
+
+	g_timeout_add(1000, tick, NULL);
+	g_unix_signal_add(SIGINT, terminate, NULL);
+
+	g_main_loop_run(main_loop);
+
+	config_free();
 
 	exit(EXIT_SUCCESS);
 }
