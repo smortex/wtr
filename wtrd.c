@@ -11,7 +11,12 @@
 #include <string.h>
 #include <unistd.h>
 
+#include <glib.h>
+#include <glib-unix.h>
+
 #include "config.h"
+
+GMainLoop *main_loop;
 
 void
 process_working_directory(const char *working_directory)
@@ -93,6 +98,24 @@ reset_wd(void)
 	}
 }
 
+gboolean
+tick(gpointer user_data)
+{
+	reset_wd();
+	each_user_process(each_process_working_directory, process_working_directory);
+	print_wd();
+
+	return TRUE;
+}
+
+gboolean
+terminate(gpointer user_data)
+{
+	g_main_loop_quit(main_loop);
+
+	return TRUE;
+}
+
 int
 main(void)
 {
@@ -100,12 +123,12 @@ main(void)
 		exit(1);
 	}
 
-	for (;;) {
-		reset_wd();
-		each_user_process(each_process_working_directory, process_working_directory);
-		print_wd();
-		sleep(1);
-	}
+	main_loop = g_main_loop_new(NULL, FALSE);
+
+	g_timeout_add(1000, tick, NULL);
+	g_unix_signal_add(SIGINT, terminate, NULL);
+
+	g_main_loop_run(main_loop);
 
 	config_free();
 
