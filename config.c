@@ -52,6 +52,7 @@ config_load(void)
 			return -1;
 		}
 
+		roots[i].name = g_strdup(groups[i]);
 		roots[i].root = root;
 		roots[i].active = 0;
 	}
@@ -67,6 +68,7 @@ void
 config_free(void)
 {
 	for (int i = 0; i < nroots; i++) {
+		free(roots[i].name);
 		free(roots[i].root);
 	}
 	free(roots);

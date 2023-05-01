@@ -8,6 +8,7 @@ void		 config_free(void);
 
 extern gsize nroots;
 struct root {
+	char *name;
 	char *root;
 	int active;
 };

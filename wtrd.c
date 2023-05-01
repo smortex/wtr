@@ -80,7 +80,7 @@ print_wd(void)
 	printf("----\n");
 	for (int i = 0; i < nroots; i++) {
 		if (roots[i].active) {
-			printf("%s\n", roots[i].root);
+			printf("%s\n", roots[i].name);
 		}
 	}
 }
