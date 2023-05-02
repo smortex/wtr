@@ -1,6 +1,8 @@
 .depend*
 *.a
+*.d
 *.o
+*.pico
 *.po
 wtr/wtr
 wtr/wtr.debug
