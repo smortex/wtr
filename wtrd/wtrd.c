@@ -86,7 +86,8 @@ each_user_process(void callback(struct procstat *prstat, struct kinfo_proc *proc
 void
 record_working_time(void)
 {
-	time_t date = beginning_of_day();
+	time_t now = time(0);
+	time_t date = beginning_of_day(now);
 
 	for (int i = 0; i < nroots; i++) {
 		if (roots[i].active) {

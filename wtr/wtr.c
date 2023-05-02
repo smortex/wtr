@@ -18,6 +18,79 @@ print_duration(duration)
 	printf("%d days %2d:%02d:%02d", duration, hrs, min, sec);
 }
 
+void
+usage(int exit_code)
+{
+	fprintf(stderr, "usage: wtr <duration>\n");
+	exit(exit_code);
+}
+
+void
+status(int argc, char *argv[], time_t *from, time_t *to)
+{
+	int n;
+	char c;
+
+	time_t now = time(0);
+
+	switch (argc) {
+	case 1:
+		if (strcmp(argv[0], "today") == 0) {
+			*from = beginning_of_day(now);
+			*to = add_day(*from, 1);
+		} else if (strcmp(argv[0], "yesterday") == 0) {
+			*from = add_day(beginning_of_day(now), -1);
+			*to = add_day(*from, 1);
+		} else if (sscanf(argv[0], "%d%c", &n, &c) == 1) {
+			*from = add_day(beginning_of_day(now), n);
+			*to = add_day(*from, 1);
+		} else {
+			usage(EXIT_FAILURE);
+		}
+		break;
+	case 2:
+		if (strcmp(argv[0], "this") == 0 && strcmp(argv[1], "week") == 0) {
+			*from = beginning_of_week(now);
+			*to = add_week(*from, 1);
+		} else if (strcmp(argv[0], "last") == 0 && strcmp(argv[1], "week") == 0) {
+			*from = add_week(beginning_of_week(now), -1);
+			*to = add_week(*from, 1);
+		} else if (strcmp(argv[0], "this") == 0 && strcmp(argv[1], "month") == 0) {
+			*from = beginning_of_month(now);
+			*to = add_month(*from, 1);
+		} else if (strcmp(argv[0], "last") == 0 && strcmp(argv[1], "month") == 0) {
+			*from = add_month(beginning_of_month(now), -1);
+			*to = add_month(*from, 1);
+		} else {
+			usage(EXIT_FAILURE);
+		}
+		break;
+	case 3:
+		if (sscanf(argv[0], "%d%c", &n, &c) == 1 && strcmp(argv[2], "ago") == 0) {
+			if (strcmp(argv[1], "day") == 0 || strcmp(argv[1], "days") == 0) {
+				*from = add_day(beginning_of_day(now), -n);
+				*to = add_day(*from, 1);
+			} else if (strcmp(argv[1], "week") == 0 || strcmp(argv[1], "weeks") == 0) {
+				*from = add_week(beginning_of_week(now), -n);
+				*to = add_week(*from, 1);
+			} else if (strcmp(argv[1], "month") == 0 || strcmp(argv[1], "months") == 0) {
+				*from = add_month(beginning_of_month(now), -n);
+				*to = add_month(*from, 1);
+			} else {
+				usage(EXIT_FAILURE);
+			}
+		} else {
+			usage(EXIT_FAILURE);
+		}
+		break;
+	case 0:
+	default:
+		usage(EXIT_FAILURE);
+		/* NOTREACHED */
+		break;
+	}
+}
+
 int
 main(int argc, char *argv[])
 {
@@ -29,17 +102,9 @@ main(int argc, char *argv[])
 		exit(1);
 	}
 
-	time_t from, to;
+	time_t from = 0, to = 0;
 	if (argc > 1) {
-		if (strcmp(argv[1], "today") == 0) {
-			from = beginning_of_day();
-			to = beginning_of_day() + 24 * 60 * 60;
-		} else if (strcmp(argv[1], "yesterday") == 0) {
-			from = beginning_of_day() - 24 * 60 * 60;
-			to = beginning_of_day();
-		} else {
-			errx(EXIT_FAILURE, "I don't know how to report \"%s\"", argv[1]);
-		}
+		status(argc - 1, argv + 1, &from, &to);
 	}
 
 	for (int i = 0; i < nroots; i++) {
