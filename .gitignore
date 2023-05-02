@@ -2,6 +2,9 @@
 *.a
 *.o
 *.po
-wtrd
-wtrd.debug
-wtrd.full
+wtr/wtr
+wtr/wtr.debug
+wtr/wtr.full
+wtrd/wtrd
+wtrd/wtrd.debug
+wtrd/wtrd.full

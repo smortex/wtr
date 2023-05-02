@@ -113,9 +113,9 @@ database_migrate(void)
 }
 
 static int
-find_project_id(void *result, int argc, char **argv, char **column_name)
+read_single_integer(void *result, int argc, char **argv, char **column_name)
 {
-	if (argc == 1) {
+	if (argc == 1 && argv[0]) {
 		sscanf(argv[0], "%d", (int *) result);
 	}
 	return 0;
@@ -129,7 +129,7 @@ find_project_by_name(char *project)
 	char *err;
 
 	asprintf(&sql, "SELECT id FROM projects WHERE name = '%s'", project);
-	if (sqlite3_exec(db, sql, find_project_id, &id, &err) != SQLITE_OK) {
+	if (sqlite3_exec(db, sql, read_single_integer, &id, &err) != SQLITE_OK) {
 		errx(EXIT_FAILURE, "%s", err);
 		/* NOTREACHED */
 	}
@@ -173,6 +173,22 @@ database_project_add_duration(int project_id, time_t date, int duration)
 		/* NOTREACHED */
 	}
 	free(sql);
+}
+
+int
+database_project_get_duration(int project_id)
+{
+	int duration = 0;
+	char *sql = NULL;
+	char *err;
+	asprintf(&sql, "SELECT SUM(duration) FROM activity WHERE project_id = %d", project_id);
+	if (sqlite3_exec(db, sql, read_single_integer, &duration, &err) != SQLITE_OK) {
+		errx(EXIT_FAILURE, "%s", err);
+		/* NOTREACHED */
+	}
+	free(sql);
+
+	return duration;
 }
 
 void
