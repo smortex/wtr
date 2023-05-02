@@ -191,6 +191,22 @@ database_project_get_duration(int project_id)
 	return duration;
 }
 
+int
+database_project_get_duration3(int project_id, time_t from, time_t to)
+{
+	int duration = 0;
+	char *sql = NULL;
+	char *err;
+	asprintf(&sql, "SELECT SUM(duration) FROM activity WHERE project_id = %d AND date >= %ld AND date < %ld", project_id, from, to);
+	if (sqlite3_exec(db, sql, read_single_integer, &duration, &err) != SQLITE_OK) {
+		errx(EXIT_FAILURE, "%s", err);
+		/* NOTREACHED */
+	}
+	free(sql);
+
+	return duration;
+}
+
 void
 database_close(void)
 {

@@ -1,7 +1,7 @@
 LIB=		wtr
 MAN=
 
-SRCS=		config.c database.c
+SRCS=		config.c database.c utils.c
 CFLAGS+=	-fPIC
 
 GLIB_CFLAGS!=	pkg-config --cflags glib-2.0
