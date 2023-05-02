@@ -1,0 +1,16 @@
+# Linux style
+--style=linux
+
+--indent=tab
+
+--lineend=linux
+
+--indent-preproc-define
+
+--indent-preproc-block
+
+# check files recursively in folder
+--recursive
+
+# do not create backups of formatted files
+--suffix=none
