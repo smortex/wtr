@@ -1,5 +1,10 @@
 .depend*
+*.a
 *.o
-wtrd
-wtrd.debug
-wtrd.full
+*.po
+wtr/wtr
+wtr/wtr.debug
+wtr/wtr.full
+wtrd/wtrd
+wtrd/wtrd.debug
+wtrd/wtrd.full

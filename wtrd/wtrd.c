@@ -15,6 +15,9 @@
 #include <glib-unix.h>
 
 #include "config.h"
+#include "database.h"
+
+const int tick_interval = 1;
 
 GMainLoop *main_loop;
 
@@ -79,19 +82,33 @@ each_user_process(void callback(struct procstat *prstat, struct kinfo_proc *proc
 	procstat_close(prstat);
 }
 
-void
-print_wd(void)
+time_t
+beginning_of_day(void)
 {
-	printf("----\n");
+	time_t now = time(0);
+	struct tm *tm = localtime(&now);
+
+	tm->tm_sec = 0;
+	tm->tm_min = 0;
+	tm->tm_hour = 0;
+
+	return mktime(tm);
+}
+
+void
+record_working_time(void)
+{
+	time_t date = beginning_of_day();
+
 	for (int i = 0; i < nroots; i++) {
 		if (roots[i].active) {
-			printf("%s\n", roots[i].name);
+			database_project_add_duration(roots[i].id, date, tick_interval);
 		}
 	}
 }
 
 void
-reset_wd(void)
+reset_working_time(void)
 {
 	for (int i = 0; i < nroots; i++) {
 		roots[i].active = 0;
@@ -101,9 +118,9 @@ reset_wd(void)
 gboolean
 tick(gpointer user_data)
 {
-	reset_wd();
+	reset_working_time();
 	each_user_process(each_process_working_directory, process_working_directory);
-	print_wd();
+	record_working_time();
 
 	return TRUE;
 }
@@ -119,18 +136,23 @@ terminate(gpointer user_data)
 int
 main(void)
 {
+	if (database_open() < 0) {
+		exit(1);
+	}
+
 	if (config_load() < 0) {
 		exit(1);
 	}
 
 	main_loop = g_main_loop_new(NULL, FALSE);
 
-	g_timeout_add(1000, tick, NULL);
+	g_timeout_add(tick_interval * 1000, tick, NULL);
 	g_unix_signal_add(SIGINT, terminate, NULL);
 
 	g_main_loop_run(main_loop);
 
 	config_free();
+	database_close();
 
 	exit(EXIT_SUCCESS);
 }

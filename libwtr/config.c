@@ -4,6 +4,7 @@
 #include <glib.h>
 
 #include "config.h"
+#include "database.h"
 
 gsize nroots;
 struct root *roots;
@@ -52,6 +53,7 @@ config_load(void)
 			return -1;
 		}
 
+		roots[i].id = database_find_or_create_project_by_name(groups[i]);
 		roots[i].name = g_strdup(groups[i]);
 		roots[i].root = root;
 		roots[i].active = 0;
