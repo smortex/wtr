@@ -22,14 +22,14 @@ struct migration {
 int
 database_open(void)
 {
-	g_auto (GPathBuf) path;
+	g_auto(GPathBuf) path;
 
-	g_path_buf_init (&path);
+	g_path_buf_init(&path);
 
 	g_path_buf_push(&path, g_get_user_data_dir());
 	g_path_buf_push(&path, "wtr");
 
-	g_autofree char *database_dir_path = g_path_buf_to_path (&path);
+	g_autofree char *database_dir_path = g_path_buf_to_path(&path);
 
 	if (g_mkdir_with_parents(database_dir_path, 0700) < 0) {
 		warn("Could not create %s", database_dir_path);
@@ -38,7 +38,7 @@ database_open(void)
 
 	g_path_buf_push(&path, "database.sqlite");
 
-	g_autofree char *database_file_path = g_path_buf_to_path (&path);
+	g_autofree char *database_file_path = g_path_buf_to_path(&path);
 
 	if (sqlite3_open(database_file_path, &db) != SQLITE_OK) {
 		sqlite3_close(db);
@@ -97,7 +97,7 @@ database_migrate(void)
 				/* NOTREACHED */
 			}
 			char *sql = NULL;
-			asprintf(&sql, "INSERT INTO information_schema (migration) VALUES ('%s')", migrations[i].name); 
+			asprintf(&sql, "INSERT INTO information_schema (migration) VALUES ('%s')", migrations[i].name);
 			if (sqlite3_exec(db, sql, NULL, 0, &err) != SQLITE_OK) {
 				errx(EXIT_FAILURE, "%s", err);
 				/* NOTREACHED */

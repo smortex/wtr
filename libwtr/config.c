@@ -12,14 +12,14 @@ struct root *roots;
 int
 config_load(void)
 {
-	g_auto (GPathBuf) path;
+	g_auto(GPathBuf) path;
 
-	g_path_buf_init (&path);
+	g_path_buf_init(&path);
 
 	g_path_buf_push(&path, g_get_user_config_dir());
 	g_path_buf_push(&path, "wtr");
 
-	g_autofree char *conf_dir_path = g_path_buf_to_path (&path);
+	g_autofree char *conf_dir_path = g_path_buf_to_path(&path);
 
 	if (g_mkdir_with_parents(conf_dir_path, 0700) < 0) {
 		warn("Could not create %s", conf_dir_path);
@@ -28,7 +28,7 @@ config_load(void)
 
 	g_path_buf_push(&path, "roots.conf");
 
-	g_autofree char *conf_file_path = g_path_buf_to_path (&path);
+	g_autofree char *conf_file_path = g_path_buf_to_path(&path);
 
 	GKeyFile *conf_file = g_key_file_new();
 	if (!g_key_file_load_from_file(conf_file, conf_file_path, G_KEY_FILE_NONE, NULL)) {
@@ -36,7 +36,7 @@ config_load(void)
 		// TODO: Create a sample configuration with comments to guide the user
 		return -1;
 	}
-	
+
 	gchar **groups = g_key_file_get_groups(conf_file, &nroots);
 
 	if (nroots == 0) {
