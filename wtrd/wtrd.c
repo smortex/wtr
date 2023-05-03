@@ -1,3 +1,4 @@
+#include <err.h>
 #include <string.h>
 
 #include <glib.h>
@@ -9,7 +10,7 @@
 #include "../libwtr/database.h"
 #include "../libwtr/utils.h"
 
-const int tick_interval = 1;
+int check_interval = 10;
 
 GMainLoop *main_loop;
 
@@ -35,7 +36,7 @@ record_working_time(void)
 
 	for (gsize i = 0; i < nroots; i++) {
 		if (roots[i].active) {
-			database_project_add_duration(roots[i].id, date, tick_interval);
+			database_project_add_duration(roots[i].id, date, check_interval);
 		}
 	}
 }
@@ -71,7 +72,7 @@ terminate(gpointer user_data)
 }
 
 int
-main(void)
+main(int argc, char *argv[])
 {
 	if (database_open() < 0) {
 		exit(1);
@@ -81,9 +82,24 @@ main(void)
 		exit(1);
 	}
 
+	static GOptionEntry entries[] = {
+		{ "interval", 'i', 0, G_OPTION_ARG_INT, &check_interval, "Wait SECONDS seconds between checks", "SECONDS" },
+		{},
+	};
+
+	GOptionContext *context;
+
+	context = g_option_context_new("- Work Time Recorder Daemon");
+	g_option_context_add_main_entries(context, entries, NULL);
+	GError *error = NULL;
+	if (!g_option_context_parse(context, &argc, &argv, &error)) {
+		errx(EXIT_FAILURE, "%s", error->message);
+	}
+	g_option_context_free(context);
+
 	main_loop = g_main_loop_new(NULL, FALSE);
 
-	g_timeout_add(tick_interval * 1000, tick, NULL);
+	g_timeout_add(check_interval * 1000, tick, NULL);
 	g_unix_signal_add(SIGINT, terminate, NULL);
 
 	g_main_loop_run(main_loop);
