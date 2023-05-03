@@ -1,9 +1,9 @@
 #include <err.h>
 #include <stdio.h>
 
-#include "config.h"
-#include "database.h"
-#include "utils.h"
+#include "../libwtr/config.h"
+#include "../libwtr/database.h"
+#include "../libwtr/utils.h"
 
 void
 print_duration(int duration)

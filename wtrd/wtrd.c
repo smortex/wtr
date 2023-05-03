@@ -5,9 +5,9 @@
 
 #include "wtrd.h"
 
-#include "config.h"
-#include "database.h"
-#include "utils.h"
+#include "../libwtr/config.h"
+#include "../libwtr/database.h"
+#include "../libwtr/utils.h"
 
 const int tick_interval = 1;
 

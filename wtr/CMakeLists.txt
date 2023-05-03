@@ -1,0 +1,5 @@
+add_executable(wtr wtr.c)
+find_package(PkgConfig REQUIRED)
+pkg_check_modules(deps REQUIRED IMPORTED_TARGET glib-2.0 sqlite3)
+target_link_libraries(wtr PkgConfig::deps libwtr)
+install(TARGETS wtr DESTINATION bin)

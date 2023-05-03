@@ -16,9 +16,9 @@
 
 #include "wtrd.h"
 
-#include "config.h"
-#include "database.h"
-#include "utils.h"
+#include "../libwtr/config.h"
+#include "../libwtr/database.h"
+#include "../libwtr/utils.h"
 
 void
 each_process_working_directory(struct procstat *prstat, struct kinfo_proc *proc, void callback(const char *wd))
