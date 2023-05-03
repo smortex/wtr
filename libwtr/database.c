@@ -62,44 +62,47 @@ find_applied_migrations(void *not_used, int argc, char **argv, char **column_nam
 static void
 database_migrate(void)
 {
-	char *err = NULL;
+	char *errmsg = NULL;
 	int rc;
 
-	rc = sqlite3_exec(db, "SELECT migration FROM information_schema", find_applied_migrations, 0, &err);
+	rc = sqlite3_exec(db, "SELECT migration FROM information_schema", find_applied_migrations, 0, &errmsg);
 	switch (rc) {
 	case SQLITE_OK:
 		break;
 	case SQLITE_ERROR:
-		rc = sqlite3_exec(db, "CREATE TABLE information_schema (migration VARCHAR(255) PRIMARY KEY)", NULL, 0, &err);
+		rc = sqlite3_exec(db, "CREATE TABLE information_schema (migration VARCHAR(255) PRIMARY KEY)", NULL, 0, &errmsg);
 		if (rc != SQLITE_OK) {
-			errx(EXIT_FAILURE, "Failed to create the information_schema table: %s", err);
+			errx(EXIT_FAILURE, "Failed to create the information_schema table: %s", errmsg);
 			/* NOTREACHED */
 		}
 		break;
 	default:
-		errx(EXIT_FAILURE, "Cannot read the information_schema table: %s", err);
+		errx(EXIT_FAILURE, "Cannot read the information_schema table: %s", errmsg);
 		/* NOTREACHED */
 	}
 
 	for (size_t i = 0; i < sizeof(migrations) / sizeof(*migrations); i++) {
 		if (!migrations[i].applied) {
-			if (sqlite3_exec(db, "BEGIN TRANSACTION", NULL, 0, &err) != SQLITE_OK) {
-				errx(EXIT_FAILURE, "%s", err);
+			if (sqlite3_exec(db, "BEGIN TRANSACTION", NULL, 0, &errmsg) != SQLITE_OK) {
+				errx(EXIT_FAILURE, "%s", errmsg);
 				/* NOTREACHED */
 			}
-			if (sqlite3_exec(db, migrations[i].sql, NULL, 0, &err) != SQLITE_OK) {
-				errx(EXIT_FAILURE, "%s", err);
+			if (sqlite3_exec(db, migrations[i].sql, NULL, 0, &errmsg) != SQLITE_OK) {
+				errx(EXIT_FAILURE, "%s", errmsg);
 				/* NOTREACHED */
 			}
 			char *sql = NULL;
-			asprintf(&sql, "INSERT INTO information_schema (migration) VALUES ('%s')", migrations[i].name);
-			if (sqlite3_exec(db, sql, NULL, 0, &err) != SQLITE_OK) {
-				errx(EXIT_FAILURE, "%s", err);
+			if (asprintf(&sql, "INSERT INTO information_schema (migration) VALUES ('%s')", migrations[i].name) < 0) {
+				err(EXIT_FAILURE, "asprintf");
+				/* NOTREACHED */
+			}
+			if (sqlite3_exec(db, sql, NULL, 0, &errmsg) != SQLITE_OK) {
+				errx(EXIT_FAILURE, "%s", errmsg);
 				/* NOTREACHED */
 			}
 			free(sql);
-			if (sqlite3_exec(db, "COMMIT", NULL, 0, &err) != SQLITE_OK) {
-				errx(EXIT_FAILURE, "%s", err);
+			if (sqlite3_exec(db, "COMMIT", NULL, 0, &errmsg) != SQLITE_OK) {
+				errx(EXIT_FAILURE, "%s", errmsg);
 				/* NOTREACHED */
 			}
 		}
@@ -123,11 +126,14 @@ find_project_by_name(char *project)
 {
 	int id = -1;
 	char *sql = NULL;
-	char *err;
+	char *errmsg;
 
-	asprintf(&sql, "SELECT id FROM projects WHERE name = '%s'", project);
-	if (sqlite3_exec(db, sql, read_single_integer, &id, &err) != SQLITE_OK) {
-		errx(EXIT_FAILURE, "%s", err);
+	if (asprintf(&sql, "SELECT id FROM projects WHERE name = '%s'", project) < 0) {
+		err(EXIT_FAILURE, "asprintf");
+		/* NOTREACHED */
+	}
+	if (sqlite3_exec(db, sql, read_single_integer, &id, &errmsg) != SQLITE_OK) {
+		errx(EXIT_FAILURE, "%s", errmsg);
 		/* NOTREACHED */
 	}
 	free(sql);
@@ -142,12 +148,15 @@ database_find_or_create_project_by_name(char *project)
 	char *sql = NULL;
 
 	id = find_project_by_name(project);
-	char *err;
+	char *errmsg;
 
 	if (id < 0) {
-		asprintf(&sql, "INSERT INTO projects (name) VALUES ('%s')", project);
-		if (sqlite3_exec(db, sql, NULL, NULL, &err) != SQLITE_OK) {
-			errx(EXIT_FAILURE, "%s", err);
+		if (asprintf(&sql, "INSERT INTO projects (name) VALUES ('%s')", project) < 0) {
+			err(EXIT_FAILURE, "asprintf");
+			/* NOTREACHED */
+		}
+		if (sqlite3_exec(db, sql, NULL, NULL, &errmsg) != SQLITE_OK) {
+			errx(EXIT_FAILURE, "%s", errmsg);
 			/* NOTREACHED */
 		}
 		free(sql);
@@ -162,11 +171,14 @@ void
 database_project_add_duration(int project_id, time_t date, int duration)
 {
 	char *sql;
-	char *err;
+	char *errmsg;
 
-	asprintf(&sql, "INSERT INTO activity (project_id, date, duration) VALUES (%d, %ld, %d) ON CONFLICT (project_id, date) DO UPDATE SET duration = duration + %d", project_id, date, duration, duration);
-	if (sqlite3_exec(db, sql, NULL, NULL, &err) != SQLITE_OK) {
-		errx(EXIT_FAILURE, "%s", err);
+	if (asprintf(&sql, "INSERT INTO activity (project_id, date, duration) VALUES (%d, %ld, %d) ON CONFLICT (project_id, date) DO UPDATE SET duration = duration + %d", project_id, date, duration, duration) < 0) {
+		err(EXIT_FAILURE, "asprintf");
+		/* NOTREACHED */
+	}
+	if (sqlite3_exec(db, sql, NULL, NULL, &errmsg) != SQLITE_OK) {
+		errx(EXIT_FAILURE, "%s", errmsg);
 		/* NOTREACHED */
 	}
 	free(sql);
@@ -177,10 +189,13 @@ database_project_get_duration(int project_id)
 {
 	int duration = 0;
 	char *sql = NULL;
-	char *err;
-	asprintf(&sql, "SELECT SUM(duration) FROM activity WHERE project_id = %d", project_id);
-	if (sqlite3_exec(db, sql, read_single_integer, &duration, &err) != SQLITE_OK) {
-		errx(EXIT_FAILURE, "%s", err);
+	char *errmsg;
+	if (asprintf(&sql, "SELECT SUM(duration) FROM activity WHERE project_id = %d", project_id) < 0) {
+		err(EXIT_FAILURE, "asprintf");
+		/* NOTREACHED */
+	}
+	if (sqlite3_exec(db, sql, read_single_integer, &duration, &errmsg) != SQLITE_OK) {
+		errx(EXIT_FAILURE, "%s", errmsg);
 		/* NOTREACHED */
 	}
 	free(sql);
@@ -193,10 +208,13 @@ database_project_get_duration3(int project_id, time_t from, time_t to)
 {
 	int duration = 0;
 	char *sql = NULL;
-	char *err;
-	asprintf(&sql, "SELECT SUM(duration) FROM activity WHERE project_id = %d AND date >= %ld AND date < %ld", project_id, from, to);
-	if (sqlite3_exec(db, sql, read_single_integer, &duration, &err) != SQLITE_OK) {
-		errx(EXIT_FAILURE, "%s", err);
+	char *errmsg;
+	if (asprintf(&sql, "SELECT SUM(duration) FROM activity WHERE project_id = %d AND date >= %ld AND date < %ld", project_id, from, to) < 0) {
+		err(EXIT_FAILURE, "asprintf");
+		/* NOTREACHED */
+	}
+	if (sqlite3_exec(db, sql, read_single_integer, &duration, &errmsg) != SQLITE_OK) {
+		errx(EXIT_FAILURE, "%s", errmsg);
 		/* NOTREACHED */
 	}
 	free(sql);
