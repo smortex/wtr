@@ -6,7 +6,7 @@
 #include "utils.h"
 
 void
-print_duration(duration)
+print_duration(int duration)
 {
 	int sec = duration % 60;
 	duration /= 60;

@@ -22,29 +22,21 @@ struct migration {
 int
 database_open(void)
 {
-	g_auto(GPathBuf) path;
-
-	g_path_buf_init(&path);
-
-	g_path_buf_push(&path, g_get_user_data_dir());
-	g_path_buf_push(&path, "wtr");
-
-	g_autofree char *database_dir_path = g_path_buf_to_path(&path);
-
+	gchar *database_dir_path = g_build_path(G_DIR_SEPARATOR_S, g_get_user_data_dir(), "wtr", NULL);
 	if (g_mkdir_with_parents(database_dir_path, 0700) < 0) {
 		warn("Could not create %s", database_dir_path);
 		return -1;
 	}
 
-	g_path_buf_push(&path, "database.sqlite");
-
-	g_autofree char *database_file_path = g_path_buf_to_path(&path);
-
+	gchar *database_file_path = g_build_path(G_DIR_SEPARATOR_S, database_dir_path, "database.sqlite", NULL);
 	if (sqlite3_open(database_file_path, &db) != SQLITE_OK) {
 		sqlite3_close(db);
 		warn("Cannot open database");
 		return -1;
 	}
+
+	free(database_file_path);
+	free(database_dir_path);
 
 	database_migrate();
 
