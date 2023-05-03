@@ -39,7 +39,7 @@ config_load(void)
 
 	roots = malloc(sizeof(*roots) * nroots);
 
-	for (int i = 0; i < nroots; i++) {
+	for (gsize i = 0; i < nroots; i++) {
 		gchar *root;
 		if (!(root = g_key_file_get_string(conf_file, groups[i], "root", NULL))) {
 			warnx("Project %s has no root", groups[i]);
@@ -62,7 +62,7 @@ config_load(void)
 void
 config_free(void)
 {
-	for (int i = 0; i < nroots; i++) {
+	for (gsize i = 0; i < nroots; i++) {
 		free(roots[i].name);
 		free(roots[i].root);
 	}
