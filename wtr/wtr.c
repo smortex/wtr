@@ -107,7 +107,7 @@ main(int argc, char *argv[])
 		status(argc - 1, argv + 1, &from, &to);
 	}
 
-	for (int i = 0; i < nroots; i++) {
+	for (gsize i = 0; i < nroots; i++) {
 		int duration;
 		if (from && to)
 			duration = database_project_get_duration3(roots[i].id, from, to);

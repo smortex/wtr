@@ -16,7 +16,7 @@ GMainLoop *main_loop;
 void
 process_working_directory(const char *working_directory)
 {
-	for (int i = 0; i < nroots; i++) {
+	for (gsize i = 0; i < nroots; i++) {
 		if (strnstr(working_directory, roots[i].root, strlen(roots[i].root)) == working_directory &&
 		    (working_directory[strlen(roots[i].root)] == '/' ||
 		     working_directory[strlen(roots[i].root)] == '\0')) {
@@ -33,7 +33,7 @@ record_working_time(void)
 	time_t now = time(0);
 	time_t date = beginning_of_day(now);
 
-	for (int i = 0; i < nroots; i++) {
+	for (gsize i = 0; i < nroots; i++) {
 		if (roots[i].active) {
 			database_project_add_duration(roots[i].id, date, tick_interval);
 		}
@@ -43,7 +43,7 @@ record_working_time(void)
 void
 reset_working_time(void)
 {
-	for (int i = 0; i < nroots; i++) {
+	for (gsize i = 0; i < nroots; i++) {
 		roots[i].active = 0;
 	}
 }
@@ -51,6 +51,8 @@ reset_working_time(void)
 gboolean
 tick(gpointer user_data)
 {
+	(void) user_data;
+
 	reset_working_time();
 	each_user_process_working_directory(process_working_directory);
 	record_working_time();
@@ -61,6 +63,8 @@ tick(gpointer user_data)
 gboolean
 terminate(gpointer user_data)
 {
+	(void) user_data;
+
 	g_main_loop_quit(main_loop);
 
 	return TRUE;

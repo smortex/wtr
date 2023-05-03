@@ -46,8 +46,11 @@ database_open(void)
 static int
 find_applied_migrations(void *not_used, int argc, char **argv, char **column_name)
 {
+	(void) not_used;
+	(void) column_name;
+
 	for (int i = 0; i < argc; i++) {
-		for (int j = 0; j < sizeof(migrations) / sizeof(*migrations); j++) {
+		for (size_t j = 0; j < sizeof(migrations) / sizeof(*migrations); j++) {
 			if (strcmp(argv[i], migrations[j].name) == 0) {
 				migrations[j].applied = 1;
 			}
@@ -78,7 +81,7 @@ database_migrate(void)
 		/* NOTREACHED */
 	}
 
-	for (int i = 0; i < sizeof(migrations) / sizeof(*migrations); i++) {
+	for (size_t i = 0; i < sizeof(migrations) / sizeof(*migrations); i++) {
 		if (!migrations[i].applied) {
 			if (sqlite3_exec(db, "BEGIN TRANSACTION", NULL, 0, &err) != SQLITE_OK) {
 				errx(EXIT_FAILURE, "%s", err);
@@ -107,6 +110,8 @@ database_migrate(void)
 static int
 read_single_integer(void *result, int argc, char **argv, char **column_name)
 {
+	(void) column_name;
+
 	if (argc == 1 && argv[0]) {
 		sscanf(argv[0], "%d", (int *) result);
 	}
