@@ -71,6 +71,16 @@ terminate(gpointer user_data)
 	return TRUE;
 }
 
+void
+child_watch(GPid pid, gint status, gpointer user_data)
+{
+	(void) pid;
+	(void) status;
+	(void) user_data;
+
+	g_main_loop_quit(main_loop);
+}
+
 int
 main(int argc, char *argv[])
 {
@@ -98,6 +108,16 @@ main(int argc, char *argv[])
 	g_option_context_free(context);
 
 	main_loop = g_main_loop_new(NULL, FALSE);
+
+	if (argc > 1) {
+		int child_pid;
+		if (!(g_spawn_async_with_pipes(NULL, &argv[1], NULL, G_SPAWN_SEARCH_PATH | G_SPAWN_CHILD_INHERITS_STDIN | G_SPAWN_DO_NOT_REAP_CHILD, NULL, NULL, &child_pid, NULL, NULL, NULL, &error))) {
+			errx(EXIT_FAILURE, "%s", error->message);
+		}
+
+		g_child_watch_add (child_pid, child_watch, main_loop);
+
+	}
 
 	g_timeout_add(check_interval * 1000, tick, NULL);
 	g_unix_signal_add(SIGINT, terminate, NULL);
