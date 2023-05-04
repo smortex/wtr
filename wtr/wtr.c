@@ -1,9 +1,8 @@
 #include <err.h>
 #include <stdio.h>
+#include <string.h>
 
-#include "../libwtr/config.h"
-#include "../libwtr/database.h"
-#include "../libwtr/utils.h"
+#include "../libwtr/libwtr.h"
 
 void
 print_duration(int duration)
@@ -107,7 +106,9 @@ main(int argc, char *argv[])
 		status(argc - 1, argv + 1, &from, &to);
 	}
 
-	for (gsize i = 0; i < nroots; i++) {
+	each_user_process_working_directory(process_working_directory);
+
+	for (size_t i = 0; i < nroots; i++) {
 		int duration;
 		if (from && to)
 			duration = database_project_get_duration3(roots[i].id, from, to);
@@ -117,7 +118,7 @@ main(int argc, char *argv[])
 		if (duration == 0)
 			continue;
 
-		printf("%-20s", roots[i].name);
+		printf("%-20s %s ", roots[i].name, roots[i].active ? "+" : " ");
 		print_duration(duration);
 		printf("\n");
 	}

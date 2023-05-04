@@ -14,7 +14,7 @@
 #include <glib.h>
 #include <glib-unix.h>
 
-#include "wtrd.h"
+#include "libwtr.h"
 
 #include "../libwtr/config.h"
 #include "../libwtr/database.h"

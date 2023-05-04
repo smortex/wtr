@@ -6,7 +6,7 @@
 #include "config.h"
 #include "database.h"
 
-gsize nroots;
+size_t nroots;
 struct root *roots;
 
 int
