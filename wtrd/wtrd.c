@@ -1,32 +1,13 @@
 #include <err.h>
-#include <string.h>
 
 #include <glib.h>
 #include <glib-unix.h>
 
-#include "wtrd.h"
-
-#include "../libwtr/config.h"
-#include "../libwtr/database.h"
-#include "../libwtr/utils.h"
+#include "../libwtr/libwtr.h"
 
 int check_interval = 10;
 
 GMainLoop *main_loop;
-
-void
-process_working_directory(const char *working_directory)
-{
-	for (gsize i = 0; i < nroots; i++) {
-		if (strnstr(working_directory, roots[i].root, strlen(roots[i].root)) == working_directory &&
-		    (working_directory[strlen(roots[i].root)] == '/' ||
-		     working_directory[strlen(roots[i].root)] == '\0')) {
-			roots[i].active = 1;
-			break;
-		}
-	}
-
-}
 
 void
 record_working_time(void)

@@ -1,12 +1,12 @@
 #ifndef CONFIG_H
 #define CONFIG_H
 
-#include <glib.h>
+#include <stdlib.h>
 
 int		 config_load(void);
 void		 config_free(void);
 
-extern gsize nroots;
+extern size_t nroots;
 struct root {
 	int id;
 	char *name;

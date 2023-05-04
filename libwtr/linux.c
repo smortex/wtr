@@ -1,7 +1,7 @@
 #include <err.h>
 #include <glib.h>
 
-#include "wtrd.h"
+#include "libwtr.h"
 
 const char *proc = "/proc";
 
