@@ -57,6 +57,7 @@ usage(int exit_code)
 	fprintf(stderr, "  add -P <project> <duration>     Add work time to a project\n");
 	fprintf(stderr, "  remove -P <project> <duration>  Remove work time from a project\n");
 	fprintf(stderr, "  edit                            Edit wtrd(1) configuration file\n");
+	fprintf(stderr, "  list                            List known projects\n");
 	fprintf(stderr, "  <report>                        Report time spent on projects\n");
 	fprintf(stderr, "\n");
 	fprintf(stderr, "Durations:\n");
@@ -237,6 +238,14 @@ main(int argc, char *argv[])
 		free(cmd);
 
 		exit(WEXITSTATUS(ret));
+	}
+
+	if (argc > 1 && strcmp(argv[1], "list") == 0) {
+		for (size_t i = 0; i < nroots; i++) {
+			printf("%s\n", roots[i].name);
+		}
+
+		exit(EXIT_SUCCESS);
 	}
 
 	time_t from = 0, to = 0;
