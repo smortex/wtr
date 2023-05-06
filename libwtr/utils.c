@@ -3,6 +3,12 @@
 #include "utils.h"
 
 time_t
+today(void)
+{
+	return beginning_of_day(time(0));
+}
+
+time_t
 beginning_of_day(time_t date)
 {
 	struct tm *tm = localtime(&date);

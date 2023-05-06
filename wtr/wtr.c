@@ -1,8 +1,30 @@
 #include <err.h>
 #include <stdio.h>
 #include <string.h>
+#include <unistd.h>
 
 #include "../libwtr/libwtr.h"
+
+int
+scan_duration(const char *str, int *duration)
+{
+	int hrs, min, sec;
+	char rest;
+
+	if (sscanf(str, "%d%c", &sec, &rest) == 1) {
+		*duration = sec;
+		return 0;
+	}
+	if (sscanf(str, "%d:%02d%c", &min, &sec, &rest) == 2) {
+		*duration = min * 60 + sec;
+		return 0;
+	}
+	if (sscanf(str, "%d:%02d:%02d%c", &hrs, &min, &sec, &rest) == 3) {
+		*duration = hrs * 3600 + min * 60 + sec;
+		return 0;
+	}
+	return -1;
+}
 
 void
 print_duration(int duration)
@@ -27,8 +49,78 @@ print_duration(int duration)
 void
 usage(int exit_code)
 {
-	fprintf(stderr, "usage: wtr <duration>\n");
+	fprintf(stderr, "usage: wtr <command>\n");
+	fprintf(stderr, "\n");
+	fprintf(stderr, "Commands:\n");
+	fprintf(stderr, "  add -P <project> <duration>  Add work time to a project\n");
+	fprintf(stderr, "  <report>                     Report time spent on projects\n");
+	fprintf(stderr, "\n");
+	fprintf(stderr, "Reports:\n");
+	fprintf(stderr, "  today\n");
+	fprintf(stderr, "  yesterday\n");
+	fprintf(stderr, "  <n> days ago | -<n>\n");
+	fprintf(stderr, "  this week\n");
+	fprintf(stderr, "  last week\n");
+	fprintf(stderr, "  <n> weeks ago\n");
+	fprintf(stderr, "  this month\n");
+	fprintf(stderr, "  last month\n");
+	fprintf(stderr, "  <n> months ago\n");
+	fprintf(stderr, "\n");
+	fprintf(stderr, "Durations:\n");
+	fprintf(stderr, "  <sec>\n");
+	fprintf(stderr, "  <min>:<sec>\n");
+	fprintf(stderr, "  <hrs>:<min>:<sec>\n");
 	exit(exit_code);
+}
+
+void
+add_duration(int argc, char *argv[])
+{
+	int project = -1;
+
+	char ch;
+	while ((ch = getopt(argc, argv, "P:")) > 0) {
+		switch(ch) {
+		case 'P':
+			for (size_t i = 0; i < nroots; i++) {
+				if (strcmp(roots[i].name, optarg) == 0) {
+					project = roots[i].id;
+				}
+			}
+			if (project < 0) {
+				errx(EXIT_FAILURE, "No such project: %s", optarg);
+			}
+			break;
+		default:
+			usage(EXIT_FAILURE);
+			/* NOTREACHED */
+		}
+	}
+	argc -= optind;
+	argv += optind;
+
+	if (project < 0) {
+		warnx("You must specify a project");
+		usage(EXIT_FAILURE);
+		/* NOTREACHED */
+	}
+
+	if (argc != 1) {
+		usage(EXIT_FAILURE);
+		/* NOTREACHED */
+	}
+
+	int n;
+	if (scan_duration(argv[0], &n) < 0)
+		errx(EXIT_FAILURE, "malformed duration: %s", argv[0]);
+
+	for (size_t i = 0; i < nroots; i++) {
+		if (project == roots[i].id) {
+			database_project_add_duration(roots[i].id, today(), n);
+		}
+	}
+
+	exit(EXIT_SUCCESS);
 }
 
 void
@@ -106,6 +198,11 @@ main(int argc, char *argv[])
 
 	if (config_load() < 0) {
 		exit(1);
+	}
+
+	if (argc > 1 && strcmp(argv[1], "add") == 0) {
+		add_duration(argc - 1, argv + 1);
+		/* NOTREACHED */
 	}
 
 	time_t from = 0, to = 0;
