@@ -14,7 +14,14 @@ print_duration(int duration)
 	int hrs = duration % 24;
 	duration /= 24;
 
-	printf("%d days %2d:%02d:%02d", duration, hrs, min, sec);
+	if (duration == 1)
+		printf("%3d day  %2d:%02d:%02d", duration, hrs, min, sec);
+	else if (duration > 1)
+		printf("%3d days %2d:%02d:%02d", duration, hrs, min, sec);
+	else if (hrs > 0)
+		printf("         %2d:%02d:%02d", hrs, min, sec);
+	else
+		printf("            %2d:%02d", min, sec);
 }
 
 void
@@ -108,6 +115,16 @@ main(int argc, char *argv[])
 
 	each_user_process_working_directory(process_working_directory);
 
+	int longest_name = 0;
+	for (size_t i = 0; i < nroots; i++) {
+		int name_length = strlen(roots[i].name);
+		if (name_length > longest_name)
+			longest_name = name_length;
+	}
+	char *format_string;
+	if (asprintf(&format_string, "%%-%ds ", longest_name) < 0)
+		err(EXIT_FAILURE, "asprintf");
+
 	for (size_t i = 0; i < nroots; i++) {
 		int duration;
 		if (from && to)
@@ -118,10 +135,15 @@ main(int argc, char *argv[])
 		if (duration == 0)
 			continue;
 
-		printf("%-20s %s ", roots[i].name, roots[i].active ? "+" : " ");
+		printf(format_string, roots[i].name);
 		print_duration(duration);
+		if (roots[i].active) {
+			printf(" +");
+		}
 		printf("\n");
 	}
+
+	free(format_string);
 
 	config_free();
 	database_close();
