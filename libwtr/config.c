@@ -9,16 +9,30 @@
 size_t nroots;
 struct root *roots;
 
-int
-config_load(void)
+char *
+config_file_path(void)
 {
 	gchar *conf_dir_path = g_build_path(G_DIR_SEPARATOR_S, g_get_user_config_dir(), "wtr", NULL);
 	if (g_mkdir_with_parents(conf_dir_path, 0700) < 0) {
 		warn("Could not create %s", conf_dir_path);
-		return -1;
+		free(conf_dir_path);
+		return NULL;
 	}
 
-	gchar *conf_file_path = g_build_path(G_DIR_SEPARATOR_S, conf_dir_path, "roots.conf", NULL);
+	char *res = g_build_path(G_DIR_SEPARATOR_S, conf_dir_path, "roots.conf", NULL);
+
+	free(conf_dir_path);
+	return res;
+}
+
+int
+config_load(void)
+{
+	char *conf_file_path = config_file_path();
+
+	if (!conf_file_path) {
+		return -1;
+	}
 
 	GKeyFile *conf_file = g_key_file_new();
 	if (!g_key_file_load_from_file(conf_file, conf_file_path, G_KEY_FILE_NONE, NULL)) {
@@ -35,7 +49,6 @@ config_load(void)
 	}
 
 	free(conf_file_path);
-	free(conf_dir_path);
 
 	roots = malloc(sizeof(*roots) * nroots);
 
