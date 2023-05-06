@@ -54,9 +54,15 @@ usage(int exit_code)
 	fprintf(stderr, "usage: wtr <command>\n");
 	fprintf(stderr, "\n");
 	fprintf(stderr, "Commands:\n");
-	fprintf(stderr, "  add -P <project> <duration>  Add work time to a project\n");
-	fprintf(stderr, "  edit                         Edit wtrd(1) configuration file\n");
-	fprintf(stderr, "  <report>                     Report time spent on projects\n");
+	fprintf(stderr, "  add -P <project> <duration>     Add work time to a project\n");
+	fprintf(stderr, "  remove -P <project> <duration>  Remove work time from a project\n");
+	fprintf(stderr, "  edit                            Edit wtrd(1) configuration file\n");
+	fprintf(stderr, "  <report>                        Report time spent on projects\n");
+	fprintf(stderr, "\n");
+	fprintf(stderr, "Durations:\n");
+	fprintf(stderr, "  <sec>\n");
+	fprintf(stderr, "  <min>:<sec>\n");
+	fprintf(stderr, "  <hrs>:<min>:<sec>\n");
 	fprintf(stderr, "\n");
 	fprintf(stderr, "Reports:\n");
 	fprintf(stderr, "  today\n");
@@ -68,29 +74,24 @@ usage(int exit_code)
 	fprintf(stderr, "  this month\n");
 	fprintf(stderr, "  last month\n");
 	fprintf(stderr, "  <n> months ago\n");
-	fprintf(stderr, "\n");
-	fprintf(stderr, "Durations:\n");
-	fprintf(stderr, "  <sec>\n");
-	fprintf(stderr, "  <min>:<sec>\n");
-	fprintf(stderr, "  <hrs>:<min>:<sec>\n");
 	exit(exit_code);
 }
 
 void
-add_duration(int argc, char *argv[])
+scan_project_and_duration(int argc, char *argv[], int *project, int *duration)
 {
-	int project = -1;
-
 	char ch;
+	int found = 0;
 	while ((ch = getopt(argc, argv, "P:")) > 0) {
 		switch(ch) {
 		case 'P':
 			for (size_t i = 0; i < nroots; i++) {
 				if (strcmp(roots[i].name, optarg) == 0) {
-					project = roots[i].id;
+					*project = roots[i].id;
+					found = 1;
 				}
 			}
-			if (project < 0) {
+			if (!found) {
 				errx(EXIT_FAILURE, "No such project: %s", optarg);
 			}
 			break;
@@ -102,7 +103,7 @@ add_duration(int argc, char *argv[])
 	argc -= optind;
 	argv += optind;
 
-	if (project < 0) {
+	if (!found) {
 		warnx("You must specify a project");
 		usage(EXIT_FAILURE);
 		/* NOTREACHED */
@@ -113,13 +114,16 @@ add_duration(int argc, char *argv[])
 		/* NOTREACHED */
 	}
 
-	int n;
-	if (scan_duration(argv[0], &n) < 0)
+	if (scan_duration(argv[0], duration) < 0)
 		errx(EXIT_FAILURE, "malformed duration: %s", argv[0]);
+}
 
+void
+add_duration(int project, int duration)
+{
 	for (size_t i = 0; i < nroots; i++) {
 		if (project == roots[i].id) {
-			database_project_add_duration(roots[i].id, today(), n);
+			database_project_add_duration(roots[i].id, today(), duration);
 		}
 	}
 
@@ -203,9 +207,17 @@ main(int argc, char *argv[])
 		exit(1);
 	}
 
-	if (argc > 1 && strcmp(argv[1], "add") == 0) {
-		add_duration(argc - 1, argv + 1);
-		/* NOTREACHED */
+	if (argc > 1 && (strcmp(argv[1], "add") == 0 || strcmp(argv[1], "remove") == 0)) {
+		int project, duration;
+		scan_project_and_duration(argc - 1, argv + 1, &project, &duration);
+
+		if (strcmp(argv[1], "add") == 0) {
+			add_duration(project, duration);
+			/* NOTREACHED */
+		} else {
+			add_duration(project, -duration);
+			/* NOTREACHED */
+		}
 	}
 
 	if (argc > 1 && strcmp(argv[1], "edit") == 0) {
