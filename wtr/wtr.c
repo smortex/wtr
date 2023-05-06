@@ -53,6 +53,7 @@ usage(int exit_code)
 	fprintf(stderr, "\n");
 	fprintf(stderr, "Commands:\n");
 	fprintf(stderr, "  add -P <project> <duration>  Add work time to a project\n");
+	fprintf(stderr, "  edit                         Edit wtrd(1) configuration file\n");
 	fprintf(stderr, "  <report>                     Report time spent on projects\n");
 	fprintf(stderr, "\n");
 	fprintf(stderr, "Reports:\n");
@@ -203,6 +204,25 @@ main(int argc, char *argv[])
 	if (argc > 1 && strcmp(argv[1], "add") == 0) {
 		add_duration(argc - 1, argv + 1);
 		/* NOTREACHED */
+	}
+
+	if (argc > 1 && strcmp(argv[1], "edit") == 0) {
+		char *editor = getenv("EDITOR");
+		if (!editor)
+			editor = "vi";
+		char *config = config_file_path();
+		char *cmd;
+		if (asprintf(&cmd, "%s %s", editor, config) < 0) {
+			err(EXIT_FAILURE, "asprintf");
+		}
+		free(config);
+		int ret;
+		if ((ret = system(cmd)) < 0) {
+			err(EXIT_FAILURE, "system");
+		}
+		free(cmd);
+
+		exit(ret);
 	}
 
 	time_t from = 0, to = 0;

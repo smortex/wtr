@@ -3,6 +3,7 @@
 
 #include <stdlib.h>
 
+char		*config_file_path(void);
 int		 config_load(void);
 void		 config_free(void);
 
