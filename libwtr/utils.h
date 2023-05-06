@@ -3,6 +3,7 @@
 
 #include <time.h>
 
+time_t		 today(void);
 time_t		 beginning_of_day(time_t date);
 time_t		 beginning_of_week(time_t date);
 time_t		 beginning_of_month(time_t date);

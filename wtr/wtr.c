@@ -1,6 +1,7 @@
 #include <err.h>
 #include <stdio.h>
 #include <string.h>
+#include <unistd.h>
 
 #include "../libwtr/libwtr.h"
 
@@ -27,8 +28,73 @@ print_duration(int duration)
 void
 usage(int exit_code)
 {
-	fprintf(stderr, "usage: wtr <duration>\n");
+	fprintf(stderr, "usage: wtr <command>\n");
+	fprintf(stderr, "\n");
+	fprintf(stderr, "Commands:\n");
+	fprintf(stderr, "  add -P <project> <duration>  Add work time to a project\n");
+	fprintf(stderr, "  <report>                     Report time spent on projects\n");
+	fprintf(stderr, "\n");
+	fprintf(stderr, "Reports:\n");
+	fprintf(stderr, "  today\n");
+	fprintf(stderr, "  yesterday\n");
+	fprintf(stderr, "  <n> days ago | -<n>\n");
+	fprintf(stderr, "  this week\n");
+	fprintf(stderr, "  last week\n");
+	fprintf(stderr, "  <n> weeks ago\n");
+	fprintf(stderr, "  this month\n");
+	fprintf(stderr, "  last month\n");
+	fprintf(stderr, "  <n> months ago\n");
 	exit(exit_code);
+}
+
+void
+add_duration(int argc, char *argv[])
+{
+	int project = -1;
+
+	char ch;
+	while ((ch = getopt(argc, argv, "P:")) > 0) {
+		switch(ch) {
+		case 'P':
+			for (size_t i = 0; i < nroots; i++) {
+				if (strcmp(roots[i].name, optarg) == 0) {
+					project = roots[i].id;
+				}
+			}
+			if (project < 0) {
+				errx(EXIT_FAILURE, "No such project: %s", optarg);
+			}
+			break;
+		default:
+			usage(EXIT_FAILURE);
+			/* NOTREACHED */
+		}
+	}
+	argc -= optind;
+	argv += optind;
+
+	if (project < 0) {
+		warnx("You must specify a project");
+		usage(EXIT_FAILURE);
+		/* NOTREACHED */
+	}
+
+	if (argc != 1) {
+		usage(EXIT_FAILURE);
+		/* NOTREACHED */
+	}
+
+	int n;
+	if (sscanf(argv[0], "%d%c", &n, &ch) != 1)
+		errx(EXIT_FAILURE, "malformed integer: %s", argv[0]);
+
+	for (size_t i = 0; i < nroots; i++) {
+		if (project == roots[i].id) {
+			database_project_add_duration(roots[i].id, today(), n);
+		}
+	}
+
+	exit(EXIT_SUCCESS);
 }
 
 void
@@ -106,6 +172,11 @@ main(int argc, char *argv[])
 
 	if (config_load() < 0) {
 		exit(1);
+	}
+
+	if (argc > 1 && strcmp(argv[1], "add") == 0) {
+		add_duration(argc - 1, argv + 1);
+		/* NOTREACHED */
 	}
 
 	time_t from = 0, to = 0;
