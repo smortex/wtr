@@ -5,6 +5,27 @@
 
 #include "../libwtr/libwtr.h"
 
+int
+scan_duration(const char *str, int *duration)
+{
+	int hrs, min, sec;
+	char rest;
+
+	if (sscanf(str, "%d%c", &sec, &rest) == 1) {
+		*duration = sec;
+		return 0;
+	}
+	if (sscanf(str, "%d:%02d%c", &min, &sec, &rest) == 2) {
+		*duration = min * 60 + sec;
+		return 0;
+	}
+	if (sscanf(str, "%d:%02d:%02d%c", &hrs, &min, &sec, &rest) == 3) {
+		*duration = hrs * 3600 + min * 60 + sec;
+		return 0;
+	}
+	return -1;
+}
+
 void
 print_duration(int duration)
 {
@@ -44,6 +65,11 @@ usage(int exit_code)
 	fprintf(stderr, "  this month\n");
 	fprintf(stderr, "  last month\n");
 	fprintf(stderr, "  <n> months ago\n");
+	fprintf(stderr, "\n");
+	fprintf(stderr, "Durations:\n");
+	fprintf(stderr, "  <sec>\n");
+	fprintf(stderr, "  <min>:<sec>\n");
+	fprintf(stderr, "  <hrs>:<min>:<sec>\n");
 	exit(exit_code);
 }
 
@@ -85,8 +111,8 @@ add_duration(int argc, char *argv[])
 	}
 
 	int n;
-	if (sscanf(argv[0], "%d%c", &n, &ch) != 1)
-		errx(EXIT_FAILURE, "malformed integer: %s", argv[0]);
+	if (scan_duration(argv[0], &n) < 0)
+		errx(EXIT_FAILURE, "malformed duration: %s", argv[0]);
 
 	for (size_t i = 0; i < nroots; i++) {
 		if (project == roots[i].id) {
