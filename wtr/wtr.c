@@ -1,3 +1,5 @@
+#include <sys/wait.h>
+
 #include <err.h>
 #include <stdio.h>
 #include <string.h>
@@ -222,7 +224,7 @@ main(int argc, char *argv[])
 		}
 		free(cmd);
 
-		exit(ret);
+		exit(WEXITSTATUS(ret));
 	}
 
 	time_t from = 0, to = 0;
