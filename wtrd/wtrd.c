@@ -80,7 +80,7 @@ main(int argc, char *argv[])
 
 	GOptionContext *context;
 
-	context = g_option_context_new("- Work Time Recorder Daemon");
+	context = g_option_context_new("[COMMAND] - Work Time Recorder Daemon");
 	g_option_context_add_main_entries(context, entries, NULL);
 	GError *error = NULL;
 	if (!g_option_context_parse(context, &argc, &argv, &error)) {

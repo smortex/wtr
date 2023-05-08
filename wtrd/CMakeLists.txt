@@ -2,6 +2,7 @@ add_executable(wtrd wtrd.c)
 find_package(PkgConfig REQUIRED)
 target_link_libraries(wtrd libwtr)
 install(TARGETS wtrd DESTINATION bin)
+install(FILES wtrd.1 DESTINATION man/man1)
 
 if (${CMAKE_SYSTEM_NAME} STREQUAL "FreeBSD")
 target_link_libraries(wtrd procstat)

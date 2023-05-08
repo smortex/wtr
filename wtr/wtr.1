@@ -1,0 +1,85 @@
+.Dd May 7, 2023
+.Dt WTR 1
+.Os
+.Sh NAME
+.Nm wtr
+.Nd Work Time Recorder
+.Sh SYNOPSIS
+.Nm
+.Cd add
+.Fl P Ar project
+.Ar duration
+.Nm
+.Cd remove
+.Fl P Ar project
+.Ar duration
+.Nm
+.Cd edit
+.Nm
+.Cd list
+.Nm
+.Ar report
+.Sh DESCRIPTION
+The
+.Nm
+utility query and update the
+.Xr wtrd 1
+database.
+.Pp
+Multiple commands are supported:
+.Bl -tag -width "remove"
+.It Cd add
+Add
+.Ar duration
+to
+.Ar project .
+.It Cd remove
+Remove
+.Ar duration
+from
+.Ar project .
+.It Cd edit
+Edit
+.Xr wtrd 1
+configuration file.
+.It Cd list
+List known projects.
+.It Ar report
+Report time spent on project. Multiple forms are accepted:
+.Bl -bullet -compact
+.It
+.Cm today
+.It
+.Cm yesterday
+.It
+.Ar n
+.Cm days ago
+.It
+.Cm this week
+.It
+.Cm last week
+.It
+.Ar n
+.Cm weeks ago
+.It
+.Cm this month
+.It
+.Cm month week
+.It
+.Ar n
+.Cm months ago
+.El
+.Sh DURATIONS
+Multiple duration formats are supported:
+.Bl -bullet -compact
+.It
+hrs:min:sec
+.It
+min:sec
+.It
+sec
+.El
+.Sh SEE ALSO
+.Xr wtrd 1 .
+.Sh AUTHORS
+.An Romain Tartière Aq romain@blogreen.org
