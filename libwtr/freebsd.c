@@ -6,19 +6,9 @@
 #include <err.h>
 #include <libproc.h>
 #include <libprocstat.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
 #include <unistd.h>
 
-#include <glib.h>
-#include <glib-unix.h>
-
 #include "libwtr.h"
-
-#include "../libwtr/config.h"
-#include "../libwtr/database.h"
-#include "../libwtr/utils.h"
 
 void
 each_process_working_directory(struct procstat *prstat, struct kinfo_proc *proc, void callback(const char *wd))
