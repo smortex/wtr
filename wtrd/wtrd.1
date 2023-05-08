@@ -1,0 +1,45 @@
+.Dd May 7, 2023
+.Dt WTRD 1
+.Os
+.Sh NAME
+.Nm wtrd
+.Nd Work Time Recorder Daemon
+.Sh SYNOPSIS
+.Nm
+.Op Fl i Ar interval
+.Op Ar command
+.Sh DESCRIPTION
+The
+.Nm
+utility periodically scan the user processes (at each
+.Ar interval
+seconds) and keep tracks on time spent on projects.
+.Pp
+To determine if a project is currently active,
+.Nm
+check the processes working directory: any processes with its working directory in a project root makes this project active.
+.Pp
+If a
+.Ar command
+is passed to
+.Nm ,
+it is started when
+.Nm
+starts and
+.Nm
+will terminate when
+.Ar command
+terminates.
+This is a common way to start
+.Nm
+with a window manager from 
+.Ar ~/.xinitrc :
+.Bd -literal -offset xxxx
+xset m 7 2
+xautolock &
+exec dbus-launch --exit-with-session wtrd fvwm3
+.Ed
+.Sh SEE ALSO
+.Xr wtr 1 .
+.Sh AUTHORS
+.An Romain Tartière Aq romain@blogreen.org
