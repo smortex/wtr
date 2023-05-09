@@ -69,12 +69,15 @@ usage(int exit_code)
 	fprintf(stderr, "  today\n");
 	fprintf(stderr, "  yesterday\n");
 	fprintf(stderr, "  <n> days ago | -<n>\n");
+	fprintf(stderr, "  last <n> days\n");
 	fprintf(stderr, "  this week\n");
 	fprintf(stderr, "  last week\n");
 	fprintf(stderr, "  <n> weeks ago\n");
+	fprintf(stderr, "  last <n> weeks\n");
 	fprintf(stderr, "  this month\n");
 	fprintf(stderr, "  last month\n");
 	fprintf(stderr, "  <n> months ago\n");
+	fprintf(stderr, "  last <n> months\n");
 	exit(exit_code);
 }
 
@@ -185,6 +188,20 @@ status(int argc, char *argv[], time_t *from, time_t *to)
 			} else {
 				usage(EXIT_FAILURE);
 			}
+		} else if (strcmp(argv[0], "last") == 0 && sscanf(argv[1], "%d%c", &n, &c) == 1) {
+			if (strcmp(argv[2], "day") == 0 || strcmp(argv[2], "days") == 0) {
+				*from = add_day(today(), -n);
+				*to = today();
+			} else if (strcmp(argv[2], "week") == 0 || strcmp(argv[2], "weeks") == 0) {
+				*from = add_week(beginning_of_week(now), -n);
+				*to = beginning_of_week(now);
+			} else if (strcmp(argv[2], "month") == 0 || strcmp(argv[2], "months") == 0) {
+				*from = add_month(beginning_of_month(now), -n);
+				*to = beginning_of_month(now);
+			} else {
+				usage(EXIT_FAILURE);
+			}
+			*to = today();
 		} else {
 			usage(EXIT_FAILURE);
 		}
