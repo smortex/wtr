@@ -272,7 +272,7 @@ main(int argc, char *argv[])
 
 	each_user_process_working_directory(process_working_directory);
 
-	int longest_name = 0;
+	int longest_name = 5;
 	for (size_t i = 0; i < nroots; i++) {
 		int name_length = strlen(roots[i].name);
 		if (name_length > longest_name)
@@ -282,6 +282,7 @@ main(int argc, char *argv[])
 	if (asprintf(&format_string, "%%-%ds ", longest_name) < 0)
 		err(EXIT_FAILURE, "asprintf");
 
+	int total_duration = 0;
 	for (size_t i = 0; i < nroots; i++) {
 		int duration;
 		if (from && to)
@@ -298,7 +299,17 @@ main(int argc, char *argv[])
 			printf(" +");
 		}
 		printf("\n");
+
+		total_duration += duration;
 	}
+
+	for (int i = 0; i < longest_name + 18; i++) {
+		printf("-");
+	}
+	printf("\n");
+	printf(format_string, "Total");
+	print_duration(total_duration);
+	printf("\n");
 
 	free(format_string);
 
