@@ -5,6 +5,10 @@
 void
 process_working_directory(const char *working_directory)
 {
+	if (!working_directory) {
+		return;
+	}
+
 	for (size_t i = 0; i < nroots; i++) {
 		if (strnstr(working_directory, roots[i].root, strlen(roots[i].root)) == working_directory &&
 		    (working_directory[strlen(roots[i].root)] == '/' ||
