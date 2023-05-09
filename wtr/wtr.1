@@ -27,7 +27,7 @@ utility query and update the
 database.
 .Pp
 Multiple commands are supported:
-.Bl -tag -width "remove"
+.Bl -tag -width "remove" -compact
 .It Cd add
 Add
 .Ar duration
@@ -45,7 +45,9 @@ configuration file.
 .It Cd list
 List known projects.
 .It Ar report
-Report time spent on project. Multiple forms are accepted:
+Report time spent on project. See the REPORTS section bellow.
+.Sh REPORTS
+Multiple reports syntax are appected:
 .Bl -bullet -compact
 .It
 .Cm today
@@ -55,6 +57,11 @@ Report time spent on project. Multiple forms are accepted:
 .Ar n
 .Cm days ago
 .It
+.Cm last
+.Ar n
+.Cm days
+Current day is not included
+.It
 .Cm this week
 .It
 .Cm last week
@@ -62,12 +69,22 @@ Report time spent on project. Multiple forms are accepted:
 .Ar n
 .Cm weeks ago
 .It
+.Cm last
+.Ar n
+.Cm weeks
+Current week is not included
+.It
 .Cm this month
 .It
-.Cm month week
+.Cm last month
 .It
 .Ar n
 .Cm months ago
+.It
+.Cm last
+.Ar n
+.Cm months
+Current month is not included.
 .El
 .Sh DURATIONS
 Multiple duration formats are supported:
