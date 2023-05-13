@@ -8,6 +8,7 @@
 int check_interval = 10;
 
 GMainLoop *main_loop;
+GMutex roots_mutex;
 
 void
 record_working_time(void)
@@ -35,11 +36,13 @@ tick(gpointer user_data)
 {
 	(void) user_data;
 
+	g_mutex_lock(&roots_mutex);
 	reset_working_time();
 	each_user_process_working_directory(process_working_directory);
 	record_working_time();
+	g_mutex_unlock(&roots_mutex);
 
-	return TRUE;
+	return G_SOURCE_CONTINUE;
 }
 
 gboolean
@@ -49,7 +52,22 @@ terminate(gpointer user_data)
 
 	g_main_loop_quit(main_loop);
 
-	return TRUE;
+	return G_SOURCE_CONTINUE;
+}
+
+gboolean
+reload_config(gpointer user_data)
+{
+	(void) user_data;
+
+	g_mutex_lock(&roots_mutex);
+	config_free();
+	if (config_load() < 0) {
+		exit(1);
+	}
+	g_mutex_unlock(&roots_mutex);
+
+	return G_SOURCE_CONTINUE;
 }
 
 void
@@ -102,6 +120,7 @@ main(int argc, char *argv[])
 
 	g_timeout_add(check_interval * 1000, tick, NULL);
 	g_unix_signal_add(SIGINT, terminate, NULL);
+	g_unix_signal_add(SIGHUP, reload_config, NULL);
 
 	g_main_loop_run(main_loop);
 
