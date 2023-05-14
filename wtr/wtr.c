@@ -265,12 +265,22 @@ main(int argc, char *argv[])
 		exit(EXIT_SUCCESS);
 	}
 
+	each_user_process_working_directory(process_working_directory);
+
+	if (argc == 2 && strcmp(argv[1], "active") == 0) {
+		for (size_t i = 0; i < nroots; i++) {
+			if (roots[i].active) {
+				printf("%s\n", roots[i].name);
+			}
+		}
+
+		exit(EXIT_SUCCESS);
+	}
+
 	time_t from = 0, to = 0;
 	if (argc > 1) {
 		status(argc - 1, argv + 1, &from, &to);
 	}
-
-	each_user_process_working_directory(process_working_directory);
 
 	int longest_name = 5;
 	for (size_t i = 0; i < nroots; i++) {
