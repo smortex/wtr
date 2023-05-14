@@ -28,6 +28,23 @@ scan_duration(const char *str, int *duration)
 	return -1;
 }
 
+int
+scan_date(const char *str, time_t *date)
+{
+	time_t now = time(0);
+	struct tm *tm = localtime(&now);
+
+	if (!strptime(str, "%Y-%m-%d", tm))
+		return -1;
+
+	tm->tm_sec = 0;
+	tm->tm_min = 0;
+	tm->tm_hour = 0;
+
+	*date = mktime(tm);
+	return 0;
+}
+
 void
 print_duration(int duration)
 {
@@ -78,6 +95,8 @@ usage(int exit_code)
 	fprintf(stderr, "  last month\n");
 	fprintf(stderr, "  <n> months ago\n");
 	fprintf(stderr, "  last <n> months\n");
+	fprintf(stderr, "  since <date>\n");
+	fprintf(stderr, "  until <date>\n");
 	exit(exit_code);
 }
 
@@ -142,40 +161,8 @@ status(int argc, char *argv[], time_t *from, time_t *to)
 
 	time_t now = time(0);
 
-	switch (argc) {
-	case 1:
-		if (strcmp(argv[0], "today") == 0) {
-			*from = beginning_of_day(now);
-			*to = add_day(*from, 1);
-		} else if (strcmp(argv[0], "yesterday") == 0) {
-			*from = add_day(beginning_of_day(now), -1);
-			*to = add_day(*from, 1);
-		} else if (sscanf(argv[0], "%d%c", &n, &c) == 1) {
-			*from = add_day(beginning_of_day(now), n);
-			*to = add_day(*from, 1);
-		} else {
-			usage(EXIT_FAILURE);
-		}
-		break;
-	case 2:
-		if (strcmp(argv[0], "this") == 0 && strcmp(argv[1], "week") == 0) {
-			*from = beginning_of_week(now);
-			*to = add_week(*from, 1);
-		} else if (strcmp(argv[0], "last") == 0 && strcmp(argv[1], "week") == 0) {
-			*from = add_week(beginning_of_week(now), -1);
-			*to = add_week(*from, 1);
-		} else if (strcmp(argv[0], "this") == 0 && strcmp(argv[1], "month") == 0) {
-			*from = beginning_of_month(now);
-			*to = add_month(*from, 1);
-		} else if (strcmp(argv[0], "last") == 0 && strcmp(argv[1], "month") == 0) {
-			*from = add_month(beginning_of_month(now), -1);
-			*to = add_month(*from, 1);
-		} else {
-			usage(EXIT_FAILURE);
-		}
-		break;
-	case 3:
-		if (sscanf(argv[0], "%d%c", &n, &c) == 1 && strcmp(argv[2], "ago") == 0) {
+	while (argc) {
+		if (argc >= 3 && !*from && !*to && sscanf(argv[0], "%d%c", &n, &c) == 1 && strcmp(argv[2], "ago") == 0) {
 			if (strcmp(argv[1], "day") == 0 || strcmp(argv[1], "days") == 0) {
 				*from = add_day(beginning_of_day(now), -n);
 				*to = add_day(*from, 1);
@@ -188,7 +175,11 @@ status(int argc, char *argv[], time_t *from, time_t *to)
 			} else {
 				usage(EXIT_FAILURE);
 			}
-		} else if (strcmp(argv[0], "last") == 0 && sscanf(argv[1], "%d%c", &n, &c) == 1) {
+			argc -= 3;
+			argv += 3;
+			continue;
+		}
+		if (argc >= 3 && !*from && !*to && strcmp(argv[0], "last") == 0 && sscanf(argv[1], "%d%c", &n, &c) == 1) {
 			if (strcmp(argv[2], "day") == 0 || strcmp(argv[2], "days") == 0) {
 				*from = add_day(today(), -n);
 				*to = today();
@@ -201,16 +192,76 @@ status(int argc, char *argv[], time_t *from, time_t *to)
 			} else {
 				usage(EXIT_FAILURE);
 			}
-			*to = today();
-		} else {
-			usage(EXIT_FAILURE);
+			argc -= 3;
+			argv += 3;
+			continue;
 		}
-		break;
-	case 0:
-	default:
+		if (argc >= 2 && !*from && !*to && strcmp(argv[0], "this") == 0 && strcmp(argv[1], "week") == 0) {
+			*from = beginning_of_week(now);
+			*to = add_week(*from, 1);
+			argc -= 2;
+			argv += 2;
+			continue;
+		}
+		if (argc >= 2 && !*from && !*to && strcmp(argv[0], "last") == 0 && strcmp(argv[1], "week") == 0) {
+			*from = add_week(beginning_of_week(now), -1);
+			*to = add_week(*from, 1);
+			argc -= 2;
+			argv += 2;
+			continue;
+		}
+		if (argc >= 2 && !*from && !*to && strcmp(argv[0], "this") == 0 && strcmp(argv[1], "month") == 0) {
+			*from = beginning_of_month(now);
+			*to = add_month(*from, 1);
+			argc -= 2;
+			argv += 2;
+			continue;
+		}
+		if (argc >= 2 && !*from && !*to && strcmp(argv[0], "last") == 0 && strcmp(argv[1], "month") == 0) {
+			*from = add_month(beginning_of_month(now), -1);
+			*to = add_month(*from, 1);
+			argc -= 2;
+			argv += 2;
+			continue;
+		}
+		if (argc >= 2 && !*from && strcmp(argv[0], "since") == 0 && scan_date(argv[1], from) >= 0) {
+			argc -= 2;
+			argv += 2;
+			continue;
+		}
+		if (argc >= 2 && !*to && strcmp(argv[0], "until") == 0 && scan_date(argv[1], to) >= 0) {
+			argc -= 2;
+			argv += 2;
+			continue;
+		}
+		if (argc >= 1 && !*from && !*to && strcmp(argv[0], "today") == 0) {
+			*from = beginning_of_day(now);
+			*to = add_day(*from, 1);
+			argc -= 1;
+			argv += 1;
+			continue;
+		}
+		if (argc >= 1 && !*from && !*to && strcmp(argv[0], "yesterday") == 0) {
+			*from = add_day(beginning_of_day(now), -1);
+			*to = add_day(*from, 1);
+			argc -= 1;
+			argv += 1;
+			continue;
+		}
+		if (argc >= 1 && !*from && !*to && sscanf(argv[0], "%d%c", &n, &c) == 1) {
+			*from = add_day(beginning_of_day(now), n);
+			*to = add_day(*from, 1);
+			argc -= 1;
+			argv += 1;
+			continue;
+		}
+		fprintf(stderr, "runaway argument:");
+		for (int i = 0; i < argc; i++) {
+			fprintf(stderr, " %s", argv[i]);
+		}
+		fprintf(stderr, "\n");
 		usage(EXIT_FAILURE);
 		/* NOTREACHED */
-		break;
 	}
 }
 
@@ -295,10 +346,7 @@ main(int argc, char *argv[])
 	int total_duration = 0;
 	for (size_t i = 0; i < nroots; i++) {
 		int duration;
-		if (from && to)
-			duration = database_project_get_duration3(roots[i].id, from, to);
-		else
-			duration = database_project_get_duration(roots[i].id);
+		duration = database_project_get_duration(roots[i].id, from, to);
 
 		if (duration == 0)
 			continue;

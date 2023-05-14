@@ -185,12 +185,26 @@ database_project_add_duration(int project_id, time_t date, int duration)
 }
 
 int
-database_project_get_duration(int project_id)
+database_project_get_duration(int project_id, time_t from, time_t to)
 {
 	int duration = 0;
 	char *sql = NULL;
 	char *errmsg;
-	if (asprintf(&sql, "SELECT SUM(duration) FROM activity WHERE project_id = %d", project_id) < 0) {
+	char *empty = "";
+	char *since_sql = empty, *until_sql = empty;
+	if (from) {
+		if (asprintf(&since_sql, " AND date >= %ld", from) < 0) {
+			err(EXIT_FAILURE, "asprintf");
+			/* NOTREACHED */
+		}
+	}
+	if (to) {
+		if (asprintf(&until_sql, " AND date < %ld", to) < 0) {
+			err(EXIT_FAILURE, "asprintf");
+			/* NOTREACHED */
+		}
+	}
+	if (asprintf(&sql, "SELECT SUM(duration) FROM activity WHERE project_id = %d%s%s", project_id, since_sql, until_sql) < 0) {
 		err(EXIT_FAILURE, "asprintf");
 		/* NOTREACHED */
 	}
@@ -199,25 +213,10 @@ database_project_get_duration(int project_id)
 		/* NOTREACHED */
 	}
 	free(sql);
-
-	return duration;
-}
-
-int
-database_project_get_duration3(int project_id, time_t from, time_t to)
-{
-	int duration = 0;
-	char *sql = NULL;
-	char *errmsg;
-	if (asprintf(&sql, "SELECT SUM(duration) FROM activity WHERE project_id = %d AND date >= %ld AND date < %ld", project_id, from, to) < 0) {
-		err(EXIT_FAILURE, "asprintf");
-		/* NOTREACHED */
-	}
-	if (sqlite3_exec(db, sql, read_single_integer, &duration, &errmsg) != SQLITE_OK) {
-		errx(EXIT_FAILURE, "%s", errmsg);
-		/* NOTREACHED */
-	}
-	free(sql);
+	if (from)
+		free(since_sql);
+	if (to)
+		free(until_sql);
 
 	return duration;
 }
