@@ -91,6 +91,9 @@ Note: current week is not included
 .Ar n
 .Cm months
 Note: current month is not included.
+.El
+Alternatively, a start date and an end date can be passed:
+.Bl -bullet -compact
 .It
 .Cm since
 .Ar date
@@ -100,6 +103,15 @@ Note: current month is not included.
 Note:
 .Ar date
 is not included.
+.El
+In any case, a report can be split in smaller chunks with:
+.Bl -bullet -compact
+.It
+.Cm by day
+.It
+.Cm by week
+.It
+.Cm by month
 .El
 .Sh DURATIONS
 Multiple duration formats are supported:

@@ -13,6 +13,7 @@ typedef struct {
 typedef struct {
     time_t since;
     time_t until;
+    time_t (*next)(time_t, int);
 } duration_t;
 
 int		 scan_date(const char *str, time_t *date);
@@ -22,6 +23,6 @@ void		 wtr_active(void);
 void		 wtr_add_duration_to_project(int duration, char *project);
 void		 wtr_edit(void);
 void		 wtr_list(void);
-void		 wtr_report(time_t from, time_t to);
+void		 wtr_report(duration_t duration);
 
 #endif
