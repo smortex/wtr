@@ -6,19 +6,21 @@
 .Nd Work Time Recorder
 .Sh SYNOPSIS
 .Nm
-.Cd add
-.Fl P Ar project
+.Cm add
 .Ar duration
+.Cm to
+.Ar project
 .Nm
-.Cd remove
-.Fl P Ar project
+.Cm remove
 .Ar duration
+.Cm from
+.Ar project
 .Nm
-.Cd active
+.Cm active
 .Nm
-.Cd edit
+.Cm edit
 .Nm
-.Cd list
+.Cm list
 .Nm
 .Ar report
 .Sh DESCRIPTION
@@ -51,7 +53,7 @@ List known projects.
 .It Ar report
 Report time spent on project. See the REPORTS section bellow.
 .Sh REPORTS
-Multiple reports syntax are appected:
+Multiple reports syntax are accepted:
 .Bl -bullet -compact
 .It
 .Cm today
