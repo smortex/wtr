@@ -35,6 +35,12 @@ database_open(void)
 		return -1;
 	}
 
+	if (sqlite3_busy_timeout(db, 1000) != SQLITE_OK) {
+		warn("Connet set database busy timeout");
+		sqlite3_close(db);
+		return -1;
+	}
+
 	free(database_file_path);
 	free(database_dir_path);
 
