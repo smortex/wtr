@@ -121,8 +121,8 @@ read_single_integer(void *result, int argc, char **argv, char **column_name)
 	return 0;
 }
 
-static int
-find_project_by_name(char *project)
+int
+database_project_find_by_name(char *project)
 {
 	int id = -1;
 	char *sql = NULL;
@@ -142,12 +142,12 @@ find_project_by_name(char *project)
 }
 
 int
-database_find_or_create_project_by_name(char *project)
+database_project_find_or_create_by_name(char *project)
 {
 	int id = -1;
 	char *sql = NULL;
 
-	id = find_project_by_name(project);
+	id = database_project_find_by_name(project);
 	char *errmsg;
 
 	if (id < 0) {
@@ -161,7 +161,7 @@ database_find_or_create_project_by_name(char *project)
 		}
 		free(sql);
 
-		id = find_project_by_name(project);
+		id = database_project_find_by_name(project);
 	}
 
 	return id;

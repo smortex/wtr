@@ -5,28 +5,11 @@
 #include <string.h>
 #include <unistd.h>
 
+#include "wtr.h"
 #include "../libwtr/libwtr.h"
 
-int
-scan_duration(const char *str, int *duration)
-{
-	int hrs, min, sec;
-	char rest;
-
-	if (sscanf(str, "%d%c", &sec, &rest) == 1) {
-		*duration = sec;
-		return 0;
-	}
-	if (sscanf(str, "%d:%02d%c", &min, &sec, &rest) == 2) {
-		*duration = min * 60 + sec;
-		return 0;
-	}
-	if (sscanf(str, "%d:%02d:%02d%c", &hrs, &min, &sec, &rest) == 3) {
-		*duration = hrs * 3600 + min * 60 + sec;
-		return 0;
-	}
-	return -1;
-}
+#include "cmd_lexer.h"
+#include "cmd_parser.h"
 
 int
 scan_date(const char *str, time_t *date)
@@ -45,7 +28,28 @@ scan_date(const char *str, time_t *date)
 	return 0;
 }
 
-void
+int
+scan_duration(const char *str, int *duration)
+{
+	int hrs, min, sec;
+	char rest;
+
+	if (sscanf(str, "%d:%02d:%02d%c", &hrs, &min, &sec, &rest) == 3) {
+		*duration = hrs * 3600 + min * 60 + sec;
+		return 0;
+	}
+	if (sscanf(str, "%d:%02d%c", &min, &sec, &rest) == 2) {
+		*duration = min * 60 + sec;
+		return 0;
+	}
+	if (sscanf(str, "%d%c", &sec, &rest) == 1) {
+		*duration = sec;
+		return 0;
+	}
+	return -1;
+}
+
+static void
 print_duration(int duration)
 {
 	int sec = duration % 60;
@@ -65,17 +69,18 @@ print_duration(int duration)
 		printf("            %2d:%02d", min, sec);
 }
 
-void
+static void
 usage(int exit_code)
 {
 	fprintf(stderr, "usage: wtr <command>\n");
 	fprintf(stderr, "\n");
 	fprintf(stderr, "Commands:\n");
-	fprintf(stderr, "  add -P <project> <duration>     Add work time to a project\n");
-	fprintf(stderr, "  remove -P <project> <duration>  Remove work time from a project\n");
-	fprintf(stderr, "  edit                            Edit wtrd(1) configuration file\n");
-	fprintf(stderr, "  list                            List known projects\n");
-	fprintf(stderr, "  <report>                        Report time spent on projects\n");
+	fprintf(stderr, "  add <duration> to <project>        Add work time to a project\n");
+	fprintf(stderr, "  remove <duration> from <project>   Remove work time from a project\n");
+	fprintf(stderr, "  edit                               Edit wtrd(1) configuration file\n");
+	fprintf(stderr, "  active                             List currently active projects\n");
+	fprintf(stderr, "  list                               List known projects\n");
+	fprintf(stderr, "  <report>                           Report time spent on projects\n");
 	fprintf(stderr, "\n");
 	fprintf(stderr, "Durations:\n");
 	fprintf(stderr, "  <sec>\n");
@@ -100,170 +105,13 @@ usage(int exit_code)
 	exit(exit_code);
 }
 
-void
-scan_project_and_duration(int argc, char *argv[], int *project, int *duration)
-{
-	char ch;
-	int found = 0;
-	while ((ch = getopt(argc, argv, "P:")) > 0) {
-		switch(ch) {
-		case 'P':
-			for (size_t i = 0; i < nroots; i++) {
-				if (strcmp(roots[i].name, optarg) == 0) {
-					*project = roots[i].id;
-					found = 1;
-				}
-			}
-			if (!found) {
-				errx(EXIT_FAILURE, "No such project: %s", optarg);
-			}
-			break;
-		default:
-			usage(EXIT_FAILURE);
-			/* NOTREACHED */
-		}
-	}
-	argc -= optind;
-	argv += optind;
+int default_argc = 1;
+char *default_argv[] = {
+	"today"
+};
 
-	if (!found) {
-		warnx("You must specify a project");
-		usage(EXIT_FAILURE);
-		/* NOTREACHED */
-	}
-
-	if (argc != 1) {
-		usage(EXIT_FAILURE);
-		/* NOTREACHED */
-	}
-
-	if (scan_duration(argv[0], duration) < 0)
-		errx(EXIT_FAILURE, "malformed duration: %s", argv[0]);
-}
-
-void
-add_duration(int project, int duration)
-{
-	for (size_t i = 0; i < nroots; i++) {
-		if (project == roots[i].id) {
-			database_project_add_duration(roots[i].id, today(), duration);
-		}
-	}
-
-	exit(EXIT_SUCCESS);
-}
-
-void
-status(int argc, char *argv[], time_t *from, time_t *to)
-{
-	int n;
-	char c;
-
-	time_t now = time(0);
-
-	while (argc) {
-		if (argc >= 3 && !*from && !*to && sscanf(argv[0], "%d%c", &n, &c) == 1 && strcmp(argv[2], "ago") == 0) {
-			if (strcmp(argv[1], "day") == 0 || strcmp(argv[1], "days") == 0) {
-				*from = add_day(beginning_of_day(now), -n);
-				*to = add_day(*from, 1);
-			} else if (strcmp(argv[1], "week") == 0 || strcmp(argv[1], "weeks") == 0) {
-				*from = add_week(beginning_of_week(now), -n);
-				*to = add_week(*from, 1);
-			} else if (strcmp(argv[1], "month") == 0 || strcmp(argv[1], "months") == 0) {
-				*from = add_month(beginning_of_month(now), -n);
-				*to = add_month(*from, 1);
-			} else {
-				usage(EXIT_FAILURE);
-			}
-			argc -= 3;
-			argv += 3;
-			continue;
-		}
-		if (argc >= 3 && !*from && !*to && strcmp(argv[0], "last") == 0 && sscanf(argv[1], "%d%c", &n, &c) == 1) {
-			if (strcmp(argv[2], "day") == 0 || strcmp(argv[2], "days") == 0) {
-				*from = add_day(today(), -n);
-				*to = today();
-			} else if (strcmp(argv[2], "week") == 0 || strcmp(argv[2], "weeks") == 0) {
-				*from = add_week(beginning_of_week(now), -n);
-				*to = beginning_of_week(now);
-			} else if (strcmp(argv[2], "month") == 0 || strcmp(argv[2], "months") == 0) {
-				*from = add_month(beginning_of_month(now), -n);
-				*to = beginning_of_month(now);
-			} else {
-				usage(EXIT_FAILURE);
-			}
-			argc -= 3;
-			argv += 3;
-			continue;
-		}
-		if (argc >= 2 && !*from && !*to && strcmp(argv[0], "this") == 0 && strcmp(argv[1], "week") == 0) {
-			*from = beginning_of_week(now);
-			*to = add_week(*from, 1);
-			argc -= 2;
-			argv += 2;
-			continue;
-		}
-		if (argc >= 2 && !*from && !*to && strcmp(argv[0], "last") == 0 && strcmp(argv[1], "week") == 0) {
-			*from = add_week(beginning_of_week(now), -1);
-			*to = add_week(*from, 1);
-			argc -= 2;
-			argv += 2;
-			continue;
-		}
-		if (argc >= 2 && !*from && !*to && strcmp(argv[0], "this") == 0 && strcmp(argv[1], "month") == 0) {
-			*from = beginning_of_month(now);
-			*to = add_month(*from, 1);
-			argc -= 2;
-			argv += 2;
-			continue;
-		}
-		if (argc >= 2 && !*from && !*to && strcmp(argv[0], "last") == 0 && strcmp(argv[1], "month") == 0) {
-			*from = add_month(beginning_of_month(now), -1);
-			*to = add_month(*from, 1);
-			argc -= 2;
-			argv += 2;
-			continue;
-		}
-		if (argc >= 2 && !*from && strcmp(argv[0], "since") == 0 && scan_date(argv[1], from) >= 0) {
-			argc -= 2;
-			argv += 2;
-			continue;
-		}
-		if (argc >= 2 && !*to && strcmp(argv[0], "until") == 0 && scan_date(argv[1], to) >= 0) {
-			argc -= 2;
-			argv += 2;
-			continue;
-		}
-		if (argc >= 1 && !*from && !*to && strcmp(argv[0], "today") == 0) {
-			*from = beginning_of_day(now);
-			*to = add_day(*from, 1);
-			argc -= 1;
-			argv += 1;
-			continue;
-		}
-		if (argc >= 1 && !*from && !*to && strcmp(argv[0], "yesterday") == 0) {
-			*from = add_day(beginning_of_day(now), -1);
-			*to = add_day(*from, 1);
-			argc -= 1;
-			argv += 1;
-			continue;
-		}
-		if (argc >= 1 && !*from && !*to && sscanf(argv[0], "%d%c", &n, &c) == 1) {
-			*from = add_day(beginning_of_day(now), n);
-			*to = add_day(*from, 1);
-			argc -= 1;
-			argv += 1;
-			continue;
-		}
-		fprintf(stderr, "runaway argument:");
-		for (int i = 0; i < argc; i++) {
-			fprintf(stderr, " %s", argv[i]);
-		}
-		fprintf(stderr, "\n");
-		usage(EXIT_FAILURE);
-		/* NOTREACHED */
-	}
-}
+int global_argc;
+char **global_argv;
 
 int
 main(int argc, char *argv[])
@@ -276,62 +124,87 @@ main(int argc, char *argv[])
 		exit(1);
 	}
 
-	if (argc > 1 && (strcmp(argv[1], "add") == 0 || strcmp(argv[1], "remove") == 0)) {
-		int project, duration;
-		scan_project_and_duration(argc - 1, argv + 1, &project, &duration);
-
-		if (strcmp(argv[1], "add") == 0) {
-			add_duration(project, duration);
-			/* NOTREACHED */
-		} else {
-			add_duration(project, -duration);
-			/* NOTREACHED */
-		}
+	if (argc > 1) {
+		global_argc = argc - 1;
+		global_argv = argv + 1;
+	} else {
+		global_argc = default_argc;
+		global_argv = default_argv;
 	}
 
-	if (argc > 1 && strcmp(argv[1], "edit") == 0) {
-		char *editor = getenv("EDITOR");
-		if (!editor)
-			editor = "vi";
-		char *config = config_file_path();
-		char *cmd;
-		if (asprintf(&cmd, "%s %s", editor, config) < 0) {
-			err(EXIT_FAILURE, "asprintf");
-		}
-		free(config);
-		int ret;
-		if ((ret = system(cmd)) < 0) {
-			err(EXIT_FAILURE, "system");
-		}
-		free(cmd);
-
-		exit(WEXITSTATUS(ret));
+	yy_scan_string(global_argv[0]);
+	if (yyparse()) {
+		usage(EXIT_FAILURE);
+		/* NOTREACHED */
 	}
 
-	if (argc > 1 && strcmp(argv[1], "list") == 0) {
-		for (size_t i = 0; i < nroots; i++) {
-			printf("%s\n", roots[i].name);
-		}
+	exit(EXIT_SUCCESS);
+}
 
-		exit(EXIT_SUCCESS);
-	}
-
+void
+wtr_active(void)
+{
 	each_user_process_working_directory(process_working_directory);
 
-	if (argc == 2 && strcmp(argv[1], "active") == 0) {
-		for (size_t i = 0; i < nroots; i++) {
-			if (roots[i].active) {
-				printf("%s\n", roots[i].name);
-			}
+	for (size_t i = 0; i < nroots; i++) {
+		if (roots[i].active) {
+			printf("%s\n", roots[i].name);
 		}
-
-		exit(EXIT_SUCCESS);
 	}
+}
 
-	time_t from = 0, to = 0;
-	if (argc > 1) {
-		status(argc - 1, argv + 1, &from, &to);
+void
+wtr_add_duration_to_project(int duration, char *project)
+{
+	int project_id = database_project_find_by_name(project);
+	if (project_id < 0) {
+		errx(EXIT_FAILURE, "unknown project: %s", project);
 	}
+	for (size_t i = 0; i < nroots; i++) {
+		if (project_id == roots[i].id) {
+			database_project_add_duration(roots[i].id, today(), duration);
+		}
+	}
+}
+
+void
+wtr_edit(void)
+{
+	char *editor = getenv("EDITOR");
+	if (!editor)
+		editor = "vi";
+	char *config = config_file_path();
+	char *cmd;
+	if (asprintf(&cmd, "%s %s", editor, config) < 0) {
+		err(EXIT_FAILURE, "asprintf");
+	}
+	free(config);
+	int ret;
+	if ((ret = system(cmd)) < 0) {
+		err(EXIT_FAILURE, "system");
+	}
+	free(cmd);
+
+	exit(WEXITSTATUS(ret));
+}
+
+void
+wtr_list(void)
+{
+	for (size_t i = 0; i < nroots; i++) {
+		printf("%s\n", roots[i].name);
+	}
+}
+
+void
+wtr_report(time_t from, time_t to)
+{
+	each_user_process_working_directory(process_working_directory);
+
+	char since[BUFSIZ], until[BUFSIZ];
+	strftime(since, BUFSIZ, "%F", localtime(&from));
+	strftime(until, BUFSIZ, "%F", localtime(&to));
+	printf("%s -> %s\n", since, until);
 
 	int longest_name = 5;
 	for (size_t i = 0; i < nroots; i++) {

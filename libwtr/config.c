@@ -59,7 +59,7 @@ config_load(void)
 			return -1;
 		}
 
-		roots[i].id = database_find_or_create_project_by_name(groups[i]);
+		roots[i].id = database_project_find_or_create_by_name(groups[i]);
 		roots[i].name = g_strdup(groups[i]);
 		roots[i].root = realpath(root, NULL);
 		roots[i].active = 0;
