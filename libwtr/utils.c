@@ -41,7 +41,7 @@ beginning_of_month(time_t date)
 	tm->tm_sec = 0;
 	tm->tm_min = 0;
 	tm->tm_hour = 0;
-	tm->tm_mday = 0;
+	tm->tm_mday = 1;
 
 	return mktime(tm);
 }
