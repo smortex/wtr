@@ -103,6 +103,7 @@ usage(int exit_code)
 	fprintf(stderr, "  last <n> months\n");
 	fprintf(stderr, "  since <date>\n");
 	fprintf(stderr, "  until <date>\n");
+	fprintf(stderr, "  rounding <duration>\n");
 	exit(exit_code);
 }
 
@@ -236,6 +237,9 @@ wtr_report(duration_t duration)
 
 			if (project_duration == 0)
 				continue;
+
+			if (duration.rounding && project_duration % duration.rounding)
+				project_duration = (project_duration / duration.rounding + 1) * duration.rounding;
 
 			printf(format_string, roots[i].name);
 			print_duration(project_duration);

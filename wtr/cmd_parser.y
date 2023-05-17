@@ -50,6 +50,7 @@ duration_t combine_report_parts(duration_t a, duration_t b);
 %token BY
 %token <date> DATE
 %token <integer> INTEGER
+%token ROUNDING
 
 %type <duration> duration report_part report
 %type <integer> time_unit
@@ -68,10 +69,11 @@ report: report report_part { $$ = combine_report_parts($1, $2); }
       | report_part { $$ = $1; }
       ;
 
-report_part: duration { $$ = $1; }
-	   | SINCE DATE { $$.since = $2; $$.until = 0; $$.next = NULL; }
-	   | UNTIL DATE { $$.since = 0; $$.until = $2; $$.next = NULL; }
-	   | BY time_unit { $$.since = 0; $$.until = 0; $$.next = time_unit_functions[$2].add; }
+report_part: duration { $$ = $1; $$.next = NULL; $$.rounding = 0; }
+	   | SINCE DATE { $$.since = $2; $$.until = 0; $$.next = NULL; $$.rounding = 0; }
+	   | UNTIL DATE { $$.since = 0; $$.until = $2; $$.next = NULL; $$.rounding = 0; }
+	   | BY time_unit { $$.since = 0; $$.until = 0; $$.next = time_unit_functions[$2].add; $$.rounding = 0; }
+	   | ROUNDING DURATION { $$.since = 0; $$.until = 0; $$.next = NULL; $$.rounding = $2; }
 	   ;
 
 duration: INTEGER { $$.since = add_day(today(), $1); $$.until = add_day($$.since, 1); }
@@ -101,6 +103,8 @@ combine_report_parts(duration_t a, duration_t b)
         errx(EXIT_FAILURE, "multiple until date");
     if (a.next && b.next)
         errx(EXIT_FAILURE, "multiple next functions");
+    if (a.rounding && b.rounding)
+        errx(EXIT_FAILURE, "multiple rounding functions");
 
     res.since = a.since | b.since;
     res.until = a.until | b.until;
@@ -108,6 +112,7 @@ combine_report_parts(duration_t a, duration_t b)
 	res.next = a.next;
     else
 	res.next = b.next;
+    res.rounding = a.rounding | b.rounding;
 
     return res;
 }

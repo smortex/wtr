@@ -14,6 +14,7 @@ typedef struct {
     time_t since;
     time_t until;
     time_t (*next)(time_t, int);
+    int rounding;
 } duration_t;
 
 int		 scan_date(const char *str, time_t *date);
