@@ -1,3 +1,4 @@
+#include <sys/param.h>
 #include <sys/wait.h>
 
 #include <err.h>
@@ -138,6 +139,9 @@ main(int argc, char *argv[])
 		/* NOTREACHED */
 	}
 
+	config_free();
+	database_close();
+
 	exit(EXIT_SUCCESS);
 }
 
@@ -197,14 +201,12 @@ wtr_list(void)
 }
 
 void
-wtr_report(time_t from, time_t to)
+wtr_report(duration_t duration)
 {
-	each_user_process_working_directory(process_working_directory);
+	time_t since = duration.since;
+	time_t until = duration.until;
 
-	char since[BUFSIZ], until[BUFSIZ];
-	strftime(since, BUFSIZ, "%F", localtime(&from));
-	strftime(until, BUFSIZ, "%F", localtime(&to));
-	printf("%s -> %s\n", since, until);
+	each_user_process_working_directory(process_working_directory);
 
 	int longest_name = 5;
 	for (size_t i = 0; i < nroots; i++) {
@@ -213,39 +215,54 @@ wtr_report(time_t from, time_t to)
 			longest_name = name_length;
 	}
 	char *format_string;
-	if (asprintf(&format_string, "%%-%ds ", longest_name) < 0)
+	if (asprintf(&format_string, "    %%-%ds ", longest_name) < 0)
 		err(EXIT_FAILURE, "asprintf");
 
-	int total_duration = 0;
-	for (size_t i = 0; i < nroots; i++) {
-		int duration;
-		duration = database_project_get_duration(roots[i].id, from, to);
+	while (since < until) {
+		time_t stop = until;
 
-		if (duration == 0)
-			continue;
+		if (duration.next)
+			stop = MIN(until, duration.next(since, 1));
 
-		printf(format_string, roots[i].name);
-		print_duration(duration);
-		if (roots[i].active) {
-			printf(" +");
+		char ssince[BUFSIZ], suntil[BUFSIZ];
+		strftime(ssince, BUFSIZ, "%F", localtime(&since));
+		strftime(suntil, BUFSIZ, "%F", localtime(&stop));
+		printf("since %s until %s\n\n", ssince, suntil);
+
+		int total_duration = 0;
+		for (size_t i = 0; i < nroots; i++) {
+			int project_duration;
+			project_duration = database_project_get_duration(roots[i].id, since, stop);
+
+			if (project_duration == 0)
+				continue;
+
+			printf(format_string, roots[i].name);
+			print_duration(project_duration);
+			if (roots[i].active) {
+				printf(" +");
+			}
+			printf("\n");
+
+			total_duration += project_duration;
+		}
+
+		printf("    ");
+		for (int i = 0; i < longest_name + 18; i++) {
+			printf("-");
 		}
 		printf("\n");
+		printf(format_string, "Total");
+		print_duration(total_duration);
+		printf("\n");
 
-		total_duration += duration;
-	}
+		if (!duration.next)
+			return;
 
-	for (int i = 0; i < longest_name + 18; i++) {
-		printf("-");
+		since = duration.next(since, 1);
+		if (since < until)
+			printf("\n");
 	}
-	printf("\n");
-	printf(format_string, "Total");
-	print_duration(total_duration);
-	printf("\n");
 
 	free(format_string);
-
-	config_free();
-	database_close();
-
-	exit(EXIT_SUCCESS);
 }

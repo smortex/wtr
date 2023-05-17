@@ -47,6 +47,7 @@ duration_t combine_report_parts(duration_t a, duration_t b);
 %token <integer> DURATION
 %token <time_unit> DAY WEEK MONTH YEAR
 %token THIS LAST AGO
+%token BY
 %token <date> DATE
 %token <integer> INTEGER
 
@@ -60,7 +61,7 @@ command: ACTIVE { wtr_active(); }
        | LIST { wtr_list(); }
        | ADD DURATION TO PROJECT { wtr_add_duration_to_project($2, $4); }
        | REMOVE DURATION FROM PROJECT { wtr_add_duration_to_project(- $2, $4); }
-       | report {  wtr_report($1.since, $1.until); }
+       | report {  wtr_report($1); }
        ;
 
 report: report report_part { $$ = combine_report_parts($1, $2); }
@@ -68,8 +69,9 @@ report: report report_part { $$ = combine_report_parts($1, $2); }
       ;
 
 report_part: duration { $$ = $1; }
-	   | SINCE DATE { $$.since = $2; $$.until = 0; }
-	   | UNTIL DATE { $$.since = 0; $$.until = $2; }
+	   | SINCE DATE { $$.since = $2; $$.until = 0; $$.next = NULL; }
+	   | UNTIL DATE { $$.since = 0; $$.until = $2; $$.next = NULL; }
+	   | BY time_unit { $$.since = 0; $$.until = 0; $$.next = time_unit_functions[$2].add; }
 	   ;
 
 duration: INTEGER { $$.since = add_day(today(), $1); $$.until = add_day($$.since, 1); }
@@ -97,9 +99,15 @@ combine_report_parts(duration_t a, duration_t b)
         errx(EXIT_FAILURE, "multiple since date");
     if (a.until && b.until)
         errx(EXIT_FAILURE, "multiple until date");
+    if (a.next && b.next)
+        errx(EXIT_FAILURE, "multiple next functions");
 
     res.since = a.since | b.since;
     res.until = a.until | b.until;
+    if (a.next)
+	res.next = a.next;
+    else
+	res.next = b.next;
 
     return res;
 }
