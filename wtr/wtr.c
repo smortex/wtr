@@ -233,7 +233,7 @@ wtr_report(duration_t duration)
 		char ssince[BUFSIZ], suntil[BUFSIZ];
 		strftime(ssince, BUFSIZ, "%F", localtime(&since));
 		strftime(suntil, BUFSIZ, "%F", localtime(&stop));
-		printf("since %s until %s\n\n", ssince, suntil);
+		printf("wtr since %s until %s\n\n", ssince, suntil);
 
 		int total_duration = 0;
 		for (size_t i = 0; i < nroots; i++) {
