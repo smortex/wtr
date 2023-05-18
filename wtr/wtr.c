@@ -87,6 +87,9 @@ usage(int exit_code)
 	fprintf(stderr, "  <sec>\n");
 	fprintf(stderr, "  <min>:<sec>\n");
 	fprintf(stderr, "  <hrs>:<min>:<sec>\n");
+	fprintf(stderr, "  <hrs>hrs\n");
+	fprintf(stderr, "  <min>min\n");
+	fprintf(stderr, "  <sec>sec\n");
 	fprintf(stderr, "\n");
 	fprintf(stderr, "Reports:\n");
 	fprintf(stderr, "  today\n");
