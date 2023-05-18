@@ -34,6 +34,9 @@ weeks?				{ yylval.time_unit = (time_unit_t){0, 1, 0, 0}; return WEEK; }
 months?				{ yylval.time_unit = (time_unit_t){0, 0, 1, 0}; return MONTH; }
 years?				{ yylval.time_unit = (time_unit_t){0, 0, 0, 1}; return YEAR; }
 
+[0-9]+(s|sec)			{ yylval.integer = strtol(yytext, NULL, 10); return DURATION; }
+[0-9]+(m|mn|min)		{ yylval.integer = strtol(yytext, NULL, 10) * 60; return DURATION; }
+[0-9]+(h|hr|hrs)		{ yylval.integer = strtol(yytext, NULL, 10) * 3600; return DURATION; }
 [0-9]{1,2}:[0-9]{2}		{ scan_duration(yytext, &yylval.integer); return DURATION; }
 [0-9]+:[0-9]{2}:[0-9]{2}	{ scan_duration(yytext, &yylval.integer); return DURATION; }
 
