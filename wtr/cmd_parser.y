@@ -72,6 +72,8 @@ report: report report_part { $$ = combine_report_parts($1, $2); }
 report_part: duration { $$ = $1; $$.next = NULL; $$.rounding = 0; }
 	   | SINCE DATE { $$.since = $2; $$.until = 0; $$.next = NULL; $$.rounding = 0; }
 	   | UNTIL DATE { $$.since = 0; $$.until = $2; $$.next = NULL; $$.rounding = 0; }
+	   | SINCE duration { $$.since = $2.since; $$.until = 0; $$.next = NULL; $$.rounding = 0; }
+	   | UNTIL duration { $$.since = 0; $$.until = $2.since; $$.next = NULL; $$.rounding = 0; }
 	   | BY time_unit { $$.since = 0; $$.until = 0; $$.next = time_unit_functions[$2].add; $$.rounding = 0; }
 	   | ROUNDING DURATION { $$.since = 0; $$.until = 0; $$.next = NULL; $$.rounding = $2; }
 	   ;
