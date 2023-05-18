@@ -207,7 +207,12 @@ wtr_report(duration_t duration)
 	time_t since = duration.since;
 	time_t until = duration.until;
 
+	time_t tomorrow = add_day(today(), 1);
+
 	each_user_process_working_directory(process_working_directory);
+
+	if ((since && !until) || until > tomorrow)
+		until = tomorrow;
 
 	int longest_name = 5;
 	for (size_t i = 0; i < nroots; i++) {
