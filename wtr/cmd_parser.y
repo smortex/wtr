@@ -57,12 +57,12 @@ duration_t combine_report_parts(duration_t a, duration_t b);
 
 %%
 
-command: ACTIVE { wtr_active(); }
-       | EDIT { wtr_edit(); }
-       | LIST { wtr_list(); }
-       | ADD DURATION TO PROJECT { wtr_add_duration_to_project($2, $4); }
-       | REMOVE DURATION FROM PROJECT { wtr_add_duration_to_project(- $2, $4); }
-       | report {  wtr_report($1); }
+command: ACTIVE YYEOF { wtr_active(); }
+       | EDIT YYEOF { wtr_edit(); }
+       | LIST YYEOF { wtr_list(); }
+       | ADD DURATION TO PROJECT YYEOF { wtr_add_duration_to_project($2, $4); }
+       | REMOVE DURATION FROM PROJECT YYEOF { wtr_add_duration_to_project(- $2, $4); }
+       | report YYEOF {  wtr_report($1); }
        ;
 
 report: report report_part { $$ = combine_report_parts($1, $2); }
