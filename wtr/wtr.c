@@ -210,6 +210,7 @@ wtr_report(duration_t duration)
 	time_t since = duration.since;
 	time_t until = duration.until;
 
+	time_t now = time(0);
 	time_t tomorrow = add_day(today(), 1);
 
 	each_user_process_working_directory(process_working_directory);
@@ -251,7 +252,7 @@ wtr_report(duration_t duration)
 
 			printf(format_string, roots[i].name);
 			print_duration(project_duration);
-			if (roots[i].active) {
+			if (roots[i].active && since <= now && now < stop) {
 				printf(" +");
 			}
 			printf("\n");
