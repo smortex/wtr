@@ -242,9 +242,11 @@ wtr_report(duration_t duration)
 		int total_duration = 0;
 		for (size_t i = 0; i < nroots; i++) {
 			int project_duration;
+			int currently_active = roots[i].active && since <= now && now < stop;
+
 			project_duration = database_project_get_duration(roots[i].id, since, stop);
 
-			if (project_duration == 0)
+			if (project_duration == 0 && !currently_active)
 				continue;
 
 			if (duration.rounding && project_duration % duration.rounding)
@@ -252,7 +254,7 @@ wtr_report(duration_t duration)
 
 			printf(format_string, roots[i].name);
 			print_duration(project_duration);
-			if (roots[i].active && since <= now && now < stop) {
+			if (currently_active) {
 				printf(" +");
 			}
 			printf("\n");
