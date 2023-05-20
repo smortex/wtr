@@ -1,5 +1,6 @@
 cmake_minimum_required(VERSION "3.18")
 project("wtr")
+include(CTest)
 
 add_compile_options(-Wall -Wextra -Werror)
 add_definitions(-D_GNU_SOURCE)

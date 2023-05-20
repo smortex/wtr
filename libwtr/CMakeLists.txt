@@ -14,3 +14,5 @@ target_sources(libwtr PRIVATE linux.c)
 pkg_check_modules(libbsd REQUIRED IMPORTED_TARGET libbsd-overlay)
 target_link_libraries(libwtr PkgConfig::libbsd)
 endif (${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
+
+add_subdirectory("tests")
