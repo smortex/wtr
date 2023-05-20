@@ -1,0 +1,6 @@
+add_executable(test_scan_date test_scan_date.c)
+add_test(NAME scan_date COMMAND test_scan_date)
+target_link_libraries(test_scan_date libwtr)
+add_executable(test_scan_duration test_scan_duration.c)
+add_test(NAME scan_duration COMMAND test_scan_duration)
+target_link_libraries(test_scan_duration libwtr)

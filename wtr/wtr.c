@@ -12,44 +12,6 @@
 #include "cmd_lexer.h"
 #include "cmd_parser.h"
 
-int
-scan_date(const char *str, time_t *date)
-{
-	time_t now = time(0);
-	struct tm *tm = localtime(&now);
-
-	if (!strptime(str, "%Y-%m-%d", tm))
-		return -1;
-
-	tm->tm_sec = 0;
-	tm->tm_min = 0;
-	tm->tm_hour = 0;
-
-	*date = mktime(tm);
-	return 0;
-}
-
-int
-scan_duration(const char *str, int *duration)
-{
-	int hrs, min, sec;
-	char rest;
-
-	if (sscanf(str, "%d:%02d:%02d%c", &hrs, &min, &sec, &rest) == 3) {
-		*duration = hrs * 3600 + min * 60 + sec;
-		return 0;
-	}
-	if (sscanf(str, "%d:%02d%c", &min, &sec, &rest) == 2) {
-		*duration = min * 60 + sec;
-		return 0;
-	}
-	if (sscanf(str, "%d%c", &sec, &rest) == 1) {
-		*duration = sec;
-		return 0;
-	}
-	return -1;
-}
-
 static void
 print_duration(int duration)
 {
@@ -85,7 +47,7 @@ usage(int exit_code)
 	fprintf(stderr, "\n");
 	fprintf(stderr, "Durations:\n");
 	fprintf(stderr, "  <sec>\n");
-	fprintf(stderr, "  <min>:<sec>\n");
+	fprintf(stderr, "  <hrs>:<min>\n");
 	fprintf(stderr, "  <hrs>:<min>:<sec>\n");
 	fprintf(stderr, "  <hrs>hrs\n");
 	fprintf(stderr, "  <min>min\n");
