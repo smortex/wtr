@@ -167,10 +167,10 @@ wtr_list(void)
 }
 
 void
-wtr_report(duration_t duration)
+wtr_report(report_options_t options)
 {
-	time_t since = duration.since;
-	time_t until = duration.until;
+	time_t since = options.since;
+	time_t until = options.until;
 
 	time_t now = time(0);
 	time_t tomorrow = add_day(today(), 1);
@@ -193,8 +193,8 @@ wtr_report(duration_t duration)
 	while (since < until) {
 		time_t stop = until;
 
-		if (duration.next)
-			stop = MIN(until, duration.next(since, 1));
+		if (options.next)
+			stop = MIN(until, options.next(since, 1));
 
 		char ssince[BUFSIZ], suntil[BUFSIZ];
 		strftime(ssince, BUFSIZ, "%F", localtime(&since));
@@ -211,8 +211,8 @@ wtr_report(duration_t duration)
 			if (project_duration == 0 && !currently_active)
 				continue;
 
-			if (duration.rounding && project_duration % duration.rounding)
-				project_duration = (project_duration / duration.rounding + 1) * duration.rounding;
+			if (options.rounding && project_duration % options.rounding)
+				project_duration = (project_duration / options.rounding + 1) * options.rounding;
 
 			printf(format_string, projects[i].name);
 			print_duration(project_duration);
@@ -233,10 +233,10 @@ wtr_report(duration_t duration)
 		print_duration(total_duration);
 		printf("\n");
 
-		if (!duration.next)
+		if (!options.next)
 			return;
 
-		since = duration.next(since, 1);
+		since = options.next(since, 1);
 		if (since < until)
 			printf("\n");
 	}

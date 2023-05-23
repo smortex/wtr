@@ -15,12 +15,12 @@ typedef struct {
     time_t until;
     time_t (*next)(time_t, int);
     int rounding;
-} duration_t;
+} report_options_t;
 
 void		 wtr_active(void);
 void		 wtr_add_duration_to_project(int duration, const char *project);
 void		 wtr_edit(void);
 void		 wtr_list(void);
-void		 wtr_report(duration_t duration);
+void		 wtr_report(report_options_t options);
 
 #endif
