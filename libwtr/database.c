@@ -128,7 +128,7 @@ read_single_integer(void *result, int argc, char **argv, char **column_name)
 }
 
 int
-database_project_find_by_name(char *project)
+database_project_find_by_name(const char *project)
 {
 	int id = -1;
 	char *sql = NULL;
@@ -148,7 +148,7 @@ database_project_find_by_name(char *project)
 }
 
 int
-database_project_find_or_create_by_name(char *project)
+database_project_find_or_create_by_name(const char *project)
 {
 	int id = -1;
 	char *sql = NULL;

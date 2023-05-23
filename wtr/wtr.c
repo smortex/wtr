@@ -124,7 +124,7 @@ wtr_active(void)
 }
 
 void
-wtr_add_duration_to_project(int duration, char *project)
+wtr_add_duration_to_project(int duration, const char *project)
 {
 	int project_id = database_project_find_by_name(project);
 	if (project_id < 0) {
