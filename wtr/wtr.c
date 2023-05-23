@@ -116,9 +116,9 @@ wtr_active(void)
 {
 	each_user_process_working_directory(process_working_directory);
 
-	for (size_t i = 0; i < nroots; i++) {
-		if (roots[i].active) {
-			printf("%s\n", roots[i].name);
+	for (size_t i = 0; i < nprojects; i++) {
+		if (projects[i].active) {
+			printf("%s\n", projects[i].name);
 		}
 	}
 }
@@ -130,9 +130,9 @@ wtr_add_duration_to_project(int duration, const char *project)
 	if (project_id < 0) {
 		errx(EXIT_FAILURE, "unknown project: %s", project);
 	}
-	for (size_t i = 0; i < nroots; i++) {
-		if (project_id == roots[i].id) {
-			database_project_add_duration(roots[i].id, today(), duration);
+	for (size_t i = 0; i < nprojects; i++) {
+		if (project_id == projects[i].id) {
+			database_project_add_duration(projects[i].id, today(), duration);
 		}
 	}
 }
@@ -161,8 +161,8 @@ wtr_edit(void)
 void
 wtr_list(void)
 {
-	for (size_t i = 0; i < nroots; i++) {
-		printf("%s\n", roots[i].name);
+	for (size_t i = 0; i < nprojects; i++) {
+		printf("%s\n", projects[i].name);
 	}
 }
 
@@ -181,8 +181,8 @@ wtr_report(duration_t duration)
 		until = tomorrow;
 
 	int longest_name = 5;
-	for (size_t i = 0; i < nroots; i++) {
-		int name_length = strlen(roots[i].name);
+	for (size_t i = 0; i < nprojects; i++) {
+		int name_length = strlen(projects[i].name);
 		if (name_length > longest_name)
 			longest_name = name_length;
 	}
@@ -202,11 +202,11 @@ wtr_report(duration_t duration)
 		printf("wtr since %s until %s\n\n", ssince, suntil);
 
 		int total_duration = 0;
-		for (size_t i = 0; i < nroots; i++) {
+		for (size_t i = 0; i < nprojects; i++) {
 			int project_duration;
-			int currently_active = roots[i].active && since <= now && now < stop;
+			int currently_active = projects[i].active && since <= now && now < stop;
 
-			project_duration = database_project_get_duration(roots[i].id, since, stop);
+			project_duration = database_project_get_duration(projects[i].id, since, stop);
 
 			if (project_duration == 0 && !currently_active)
 				continue;
@@ -214,7 +214,7 @@ wtr_report(duration_t duration)
 			if (duration.rounding && project_duration % duration.rounding)
 				project_duration = (project_duration / duration.rounding + 1) * duration.rounding;
 
-			printf(format_string, roots[i].name);
+			printf(format_string, projects[i].name);
 			print_duration(project_duration);
 			if (currently_active) {
 				printf(" +");

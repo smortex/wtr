@@ -16,9 +16,9 @@ record_working_time(void)
 	time_t now = time(0);
 	time_t date = beginning_of_day(now);
 
-	for (gsize i = 0; i < nroots; i++) {
-		if (roots[i].active) {
-			database_project_add_duration(roots[i].id, date, check_interval);
+	for (gsize i = 0; i < nprojects; i++) {
+		if (projects[i].active) {
+			database_project_add_duration(projects[i].id, date, check_interval);
 		}
 	}
 }
@@ -26,8 +26,8 @@ record_working_time(void)
 void
 reset_working_time(void)
 {
-	for (gsize i = 0; i < nroots; i++) {
-		roots[i].active = 0;
+	for (gsize i = 0; i < nprojects; i++) {
+		projects[i].active = 0;
 	}
 }
 

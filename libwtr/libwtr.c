@@ -9,11 +9,11 @@ process_working_directory(const char *working_directory)
 		return;
 	}
 
-	for (size_t i = 0; i < nroots; i++) {
-		if (strnstr(working_directory, roots[i].root, strlen(roots[i].root)) == working_directory &&
-		    (working_directory[strlen(roots[i].root)] == '/' ||
-		     working_directory[strlen(roots[i].root)] == '\0')) {
-			roots[i].active = 1;
+	for (size_t i = 0; i < nprojects; i++) {
+		if (strnstr(working_directory, projects[i].root, strlen(projects[i].root)) == working_directory &&
+		    (working_directory[strlen(projects[i].root)] == '/' ||
+		     working_directory[strlen(projects[i].root)] == '\0')) {
+			projects[i].active = 1;
 			break;
 		}
 	}
