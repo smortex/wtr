@@ -17,9 +17,6 @@ typedef struct {
     int rounding;
 } duration_t;
 
-int		 scan_date(const char *str, time_t *date);
-int		 scan_duration(const char *str, int *duration);
-
 void		 wtr_active(void);
 void		 wtr_add_duration_to_project(int duration, const char *project);
 void		 wtr_edit(void);
