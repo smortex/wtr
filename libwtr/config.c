@@ -6,8 +6,8 @@
 #include "config.h"
 #include "database.h"
 
-size_t nroots;
-struct root *roots;
+size_t nprojects;
+struct project *projects;
 
 char *
 config_file_path(void)
@@ -41,28 +41,28 @@ config_load(void)
 		return -1;
 	}
 
-	gchar **groups = g_key_file_get_groups(conf_file, &nroots);
+	gchar **groups = g_key_file_get_groups(conf_file, &nprojects);
 
-	if (nroots == 0) {
+	if (nprojects == 0) {
 		warnx("Configuration file %s has no projects", conf_file_path);
 		return -1;
 	}
 
 	free(conf_file_path);
 
-	roots = malloc(sizeof(*roots) * nroots);
+	projects = malloc(sizeof(*projects) * nprojects);
 
-	for (gsize i = 0; i < nroots; i++) {
+	for (gsize i = 0; i < nprojects; i++) {
 		gchar *root;
 		if (!(root = g_key_file_get_string(conf_file, groups[i], "root", NULL))) {
 			warnx("Project %s has no root", groups[i]);
 			return -1;
 		}
 
-		roots[i].id = database_project_find_or_create_by_name(groups[i]);
-		roots[i].name = g_strdup(groups[i]);
-		roots[i].root = realpath(root, NULL);
-		roots[i].active = 0;
+		projects[i].id = database_project_find_or_create_by_name(groups[i]);
+		projects[i].name = g_strdup(groups[i]);
+		projects[i].root = realpath(root, NULL);
+		projects[i].active = 0;
 
 		free(root);
 	}
@@ -77,9 +77,9 @@ config_load(void)
 void
 config_free(void)
 {
-	for (gsize i = 0; i < nroots; i++) {
-		free(roots[i].name);
-		free(roots[i].root);
+	for (gsize i = 0; i < nprojects; i++) {
+		free(projects[i].name);
+		free(projects[i].root);
 	}
-	free(roots);
+	free(projects);
 }

@@ -7,14 +7,14 @@ char		*config_file_path(void);
 int		 config_load(void);
 void		 config_free(void);
 
-extern size_t nroots;
-struct root {
+extern size_t nprojects;
+struct project {
 	int id;
 	char *name;
 	char *root;
 	int active;
 };
 
-extern struct root *roots;
+extern struct project *projects;
 
 #endif

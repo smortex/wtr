@@ -21,7 +21,7 @@ struct {
     { beginning_of_year, add_year },
 };
 
-duration_t combine_report_parts(duration_t a, duration_t b);
+report_options_t combine_report_parts(report_options_t a, report_options_t b);
 %}
 
 %define parse.trace
@@ -33,7 +33,7 @@ duration_t combine_report_parts(duration_t a, duration_t b);
     time_t date;
     char *string;
     time_unit_t time_unit;
-    duration_t duration;
+    report_options_t report_options;
 }
 
 %start command
@@ -52,7 +52,7 @@ duration_t combine_report_parts(duration_t a, duration_t b);
 %token <integer> INTEGER
 %token ROUNDING
 
-%type <duration> duration report_part report
+%type <report_options> duration report_part report
 %type <integer> time_unit
 
 %%
@@ -95,10 +95,10 @@ time_unit: DAY { $$ = 0; }
 
 %%
 
-duration_t
-combine_report_parts(duration_t a, duration_t b)
+report_options_t
+combine_report_parts(report_options_t a, report_options_t b)
 {
-    duration_t res = a;
+    report_options_t res = a;
     if (a.since && b.since)
         errx(EXIT_FAILURE, "multiple since date");
     if (a.until && b.until)
