@@ -54,14 +54,15 @@ report_options_t combine_report_parts(report_options_t a, report_options_t b);
 
 %type <report_options> moment report_part report
 %type <integer> time_unit
+%type <integer> duration
 
 %%
 
 command: ACTIVE YYEOF { wtr_active(); }
        | EDIT YYEOF { wtr_edit(); }
        | LIST YYEOF { wtr_list(); }
-       | ADD DURATION TO PROJECT YYEOF { wtr_add_duration_to_project($2, $4); }
-       | REMOVE DURATION FROM PROJECT YYEOF { wtr_add_duration_to_project(- $2, $4); }
+       | ADD duration TO PROJECT YYEOF { wtr_add_duration_to_project($2, $4); }
+       | REMOVE duration FROM PROJECT YYEOF { wtr_add_duration_to_project(- $2, $4); }
        | report YYEOF {  wtr_report($1); }
        ;
 
@@ -77,6 +78,10 @@ report_part: moment { $$ = $1; $$.next = NULL; $$.rounding = 0; }
 	   | BY time_unit { $$.since = 0; $$.until = 0; $$.next = time_unit_functions[$2].add; $$.rounding = 0; }
 	   | ROUNDING DURATION { $$.since = 0; $$.until = 0; $$.next = NULL; $$.rounding = $2; }
 	   ;
+
+duration: INTEGER
+	| DURATION
+	;
 
 moment: INTEGER { $$.since = add_day(today(), $1); $$.until = add_day($$.since, 1); }
       | TODAY { $$.since = today(); $$.until = add_day($$.since, 1); }

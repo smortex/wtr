@@ -34,10 +34,6 @@ scan_duration(const char *str, int *duration)
 		*duration = hrs * 3600 + min * 60;
 		return 0;
 	}
-	if (sscanf(str, "%d%c", &sec, &rest) == 1) {
-		*duration = sec;
-		return 0;
-	}
 	return -1;
 }
 

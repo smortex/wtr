@@ -32,14 +32,16 @@ test_scan_duration(char *str, int expected_ret, int expected_duration)
 int
 main(void)
 {
-	test_scan_duration("1", 0, 1);
-	test_scan_duration("3600", 0, 3600);
+	test_scan_duration("00:00", 0, 0);
+	test_scan_duration("0:01", 0, 60);
 	test_scan_duration("1:1", 0, 3660);
 	test_scan_duration("1:15", 0, 4500);
 	test_scan_duration("1:101", -1, 0);
 	test_scan_duration("2:20:15", 0, 8415);
 	test_scan_duration("1:1:1", 0, 3661);
 	test_scan_duration("1:01 extra", -1, -1);
+	test_scan_duration("1", -1, -1);
+	test_scan_duration("3600", -1, -1);
 	test_scan_duration("random", -1, -1);
 
 	exit(res);
