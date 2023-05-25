@@ -22,6 +22,9 @@ struct {
 };
 
 report_options_t combine_report_parts(report_options_t a, report_options_t b);
+
+report_options_t empty_options;
+
 %}
 
 %define parse.trace
@@ -70,13 +73,13 @@ report: report report_part { $$ = combine_report_parts($1, $2); }
       | report_part { $$ = $1; }
       ;
 
-report_part: moment { $$ = $1; $$.next = NULL; $$.rounding = 0; }
-	   | SINCE DATE { $$.since = $2; $$.until = 0; $$.next = NULL; $$.rounding = 0; }
-	   | UNTIL DATE { $$.since = 0; $$.until = $2; $$.next = NULL; $$.rounding = 0; }
-	   | SINCE moment { $$.since = $2.since; $$.until = 0; $$.next = NULL; $$.rounding = 0; }
-	   | UNTIL moment { $$.since = 0; $$.until = $2.since; $$.next = NULL; $$.rounding = 0; }
-	   | BY time_unit { $$.since = 0; $$.until = 0; $$.next = time_unit_functions[$2].add; $$.rounding = 0; }
-	   | ROUNDING DURATION { $$.since = 0; $$.until = 0; $$.next = NULL; $$.rounding = $2; }
+report_part: moment { $$ = empty_options; $$.since = $1.since; $$.until = $1.until; }
+	   | SINCE DATE { $$ = empty_options; $$.since = $2; }
+	   | UNTIL DATE { $$ = empty_options; $$.until = $2; }
+	   | SINCE moment { $$ = empty_options; $$.since = $2.since; }
+	   | UNTIL moment { $$ = empty_options; $$.until = $2.since; }
+	   | BY time_unit { $$ = empty_options; $$.next = time_unit_functions[$2].add; }
+	   | ROUNDING DURATION { $$ = empty_options; $$.rounding = $2; }
 	   ;
 
 duration: INTEGER
