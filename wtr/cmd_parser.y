@@ -22,6 +22,57 @@ struct {
 };
 
 report_options_t combine_report_parts(report_options_t a, report_options_t b);
+
+project_list_t *
+project_list_new(const char *name)
+{
+    project_list_t *head;
+    if (!(head = malloc(sizeof(*head))))
+	return head;
+
+    head->id = database_project_find_by_name(name);
+    head->next = NULL;
+
+    if (head->id < 0)
+	errx(EXIT_FAILURE, "unknown project: %s", name);
+
+    return head;
+}
+
+project_list_t *
+project_list_add(project_list_t *head, const char *name)
+{
+    project_list_t *tail = head;
+
+    while (tail->next)
+	tail = tail->next;
+
+    if (!(tail->next = malloc(sizeof(*head))))
+	return NULL;
+
+    tail = tail->next;
+    tail->id = database_project_find_by_name(name);
+    tail->next = NULL;
+
+    if (tail->id < 0)
+	errx(EXIT_FAILURE, "unknown project: %s", name);
+
+    return tail;
+}
+
+void
+project_list_free(project_list_t *head)
+{
+    project_list_t *next;
+    while (head) {
+	next = head->next;
+	free(head);
+	head = next;
+    }
+}
+
+report_options_t empty_options;
+
 %}
 
 %define parse.trace
@@ -34,6 +85,7 @@ report_options_t combine_report_parts(report_options_t a, report_options_t b);
     char *string;
     time_unit_t time_unit;
     report_options_t report_options;
+    project_list_t *projects;
 }
 
 %start command
@@ -51,10 +103,12 @@ report_options_t combine_report_parts(report_options_t a, report_options_t b);
 %token <date> DATE
 %token <integer> INTEGER
 %token ROUNDING
+%token ON
 
 %type <report_options> moment report_part report
 %type <integer> time_unit
 %type <integer> duration
+%type <projects> projects
 
 %%
 
@@ -70,13 +124,14 @@ report: report report_part { $$ = combine_report_parts($1, $2); }
       | report_part { $$ = $1; }
       ;
 
-report_part: moment { $$ = $1; $$.next = NULL; $$.rounding = 0; }
-	   | SINCE DATE { $$.since = $2; $$.until = 0; $$.next = NULL; $$.rounding = 0; }
-	   | UNTIL DATE { $$.since = 0; $$.until = $2; $$.next = NULL; $$.rounding = 0; }
-	   | SINCE moment { $$.since = $2.since; $$.until = 0; $$.next = NULL; $$.rounding = 0; }
-	   | UNTIL moment { $$.since = 0; $$.until = $2.since; $$.next = NULL; $$.rounding = 0; }
-	   | BY time_unit { $$.since = 0; $$.until = 0; $$.next = time_unit_functions[$2].add; $$.rounding = 0; }
-	   | ROUNDING DURATION { $$.since = 0; $$.until = 0; $$.next = NULL; $$.rounding = $2; }
+report_part: moment { $$ = empty_options; $$.since = $1.since; $$.until = $1.until; }
+	   | SINCE DATE { $$ = empty_options; $$.since = $2; }
+	   | UNTIL DATE { $$ = empty_options; $$.until = $2; }
+	   | SINCE moment { $$ = empty_options; $$.since = $2.since; }
+	   | UNTIL moment { $$ = empty_options; $$.until = $2.since; }
+	   | BY time_unit { $$ = empty_options; $$.next = time_unit_functions[$2].add; }
+	   | ROUNDING DURATION { $$ = empty_options; $$.rounding = $2; }
+	   | ON projects { $$ = empty_options; $$.projects = $2; }
 	   ;
 
 duration: INTEGER
@@ -98,6 +153,10 @@ time_unit: DAY { $$ = 0; }
 	 | YEAR { $$ = 3; }
 	 ;
 
+projects: projects PROJECT { project_list_add($1, $2); $$ = $1; }
+	| PROJECT { $$ = project_list_new($1); }
+	;
+
 %%
 
 report_options_t
@@ -112,6 +171,8 @@ combine_report_parts(report_options_t a, report_options_t b)
         errx(EXIT_FAILURE, "multiple next functions");
     if (a.rounding && b.rounding)
         errx(EXIT_FAILURE, "multiple rounding functions");
+    if (a.projects && b.projects)
+	errx(EXIT_FAILURE, "multiple project filters");
 
     res.since = a.since | b.since;
     res.until = a.until | b.until;
@@ -120,6 +181,10 @@ combine_report_parts(report_options_t a, report_options_t b)
     else
 	res.next = b.next;
     res.rounding = a.rounding | b.rounding;
+    if (a.projects)
+	res.projects = a.projects;
+    else
+	res.projects = b.projects;
 
     return res;
 }

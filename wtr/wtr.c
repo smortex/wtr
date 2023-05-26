@@ -69,6 +69,7 @@ usage(int exit_code)
 	fprintf(stderr, "  since <date>\n");
 	fprintf(stderr, "  until <date>\n");
 	fprintf(stderr, "  rounding <duration>\n");
+	fprintf(stderr, "  on <project ...>\n");
 	exit(exit_code);
 }
 
@@ -203,6 +204,19 @@ wtr_report(report_options_t options)
 
 		int total_duration = 0;
 		for (size_t i = 0; i < nprojects; i++) {
+			if (options.projects) {
+				int found = 0;
+				project_list_t *item = options.projects;
+
+				for (item = options.projects; item; item = item->next) {
+					if (item->id == projects[i].id) {
+						found = 1;
+						break;
+					}
+				}
+				if (!found)
+					continue;
+			}
 			int project_duration;
 			int currently_active = projects[i].active && since <= now && now < stop;
 
@@ -241,5 +255,6 @@ wtr_report(report_options_t options)
 			printf("\n");
 	}
 
+	project_list_free(options.projects);
 	free(format_string);
 }

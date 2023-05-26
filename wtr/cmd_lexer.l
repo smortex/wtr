@@ -29,6 +29,7 @@ last				{ return LAST; }
 ago				{ return AGO; }
 by				{ return BY; }
 rounding			{ return ROUNDING; }
+on				{ return ON; }
 days?				{ yylval.time_unit = (time_unit_t){1, 0, 0, 0}; return DAY; }
 weeks?				{ yylval.time_unit = (time_unit_t){0, 1, 0, 0}; return WEEK; }
 months?				{ yylval.time_unit = (time_unit_t){0, 0, 1, 0}; return MONTH; }
