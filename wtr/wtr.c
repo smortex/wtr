@@ -44,6 +44,7 @@ usage(int exit_code)
 	fprintf(stderr, "  active                             List currently active projects\n");
 	fprintf(stderr, "  list                               List known projects\n");
 	fprintf(stderr, "  <report>                           Report time spent on projects\n");
+	fprintf(stderr, "  graph <time-span>                  Visually represent time spent on projects\n");
 	fprintf(stderr, "\n");
 	fprintf(stderr, "Durations:\n");
 	fprintf(stderr, "  <sec>\n");
@@ -178,7 +179,7 @@ wtr_report(report_options_t options)
 
 	each_user_process_working_directory(process_working_directory);
 
-	if ((since && !until) || until > tomorrow)
+	if (!until)
 		until = tomorrow;
 
 	int longest_name = 5;
@@ -257,4 +258,82 @@ wtr_report(report_options_t options)
 
 	project_list_free(options.projects);
 	free(format_string);
+}
+
+void
+wtr_graph(report_options_t options)
+{
+	time_t since = beginning_of_week(options.since);
+	time_t until = options.until;
+
+	time_t tomorrow = add_day(today(), 1);
+
+	if (!until)
+		until = tomorrow;
+
+	int nweeks;
+	for (nweeks = 0; add_week(since, nweeks) < until; nweeks++);
+
+	int *durations;
+	if (!(durations = malloc(7 * nweeks * sizeof(*durations)))) {
+		err(EXIT_FAILURE, "malloc");
+	}
+
+	int min = INT_MAX;
+	int max = 0;
+	for (int day_of_week = 0; day_of_week < 7; day_of_week++) {
+		for (int week = 0; week < nweeks ; week++) {
+			time_t t = add_week(add_day(since, day_of_week), week);
+			if (t < options.since || t >= until) {
+				durations[week * 7 + day_of_week] = 0;
+			} else {
+				int duration = database_get_duration(t, add_day(t, 1));
+				durations[week * 7 + day_of_week] = duration;
+				if (duration > max)
+					max = duration;
+				if (duration > 0 && duration < min)
+					min = duration;
+			}
+		}
+	}
+
+	for (int day_of_week = 0; day_of_week < 7; day_of_week++) {
+		for (int week = 0; week < nweeks ; week++) {
+			time_t t = add_week(add_day(since, day_of_week), week);
+			if (t < options.since || t >= until) {
+				printf("\033[48;2;235;237;240m");
+				printf("    ");
+			} else {
+				struct tm* day = localtime(&t);
+				int duration = durations[week * 7 + day_of_week];
+
+				if (duration > 0) {
+					float relative_ratio;
+
+					if (min == max)
+						relative_ratio = 0.0;
+					else
+						relative_ratio = 1.0 - (float) (duration - min) / (max - min);
+					int red = relative_ratio * (155 - 33) + 33;
+					int green = relative_ratio * (233 - 110) + 110;
+					int blue = relative_ratio * (168 - 57) + 57;
+					printf("\033[48;2;%d;%d;%dm", red, green, blue);
+					if (red + green + blue > 255 * 1.5) {
+						printf("\033[38;2;101;109;118m");
+					} else {
+						printf("\033[38;2;235;237;240m");
+					}
+				} else {
+					printf("\033[48;2;235;237;240m");
+					printf("\033[38;2;101;109;118m");
+				}
+
+				printf(" %2d ", day->tm_mday);
+			}
+		}
+		printf("\033[31;0m");
+		printf("\n");
+	}
+
+	free(durations);
 }
