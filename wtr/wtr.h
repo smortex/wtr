@@ -32,5 +32,6 @@ void		 wtr_add_duration_to_project(int duration, const char *project);
 void		 wtr_edit(void);
 void		 wtr_list(void);
 void		 wtr_report(report_options_t options);
+void		 wtr_graph(report_options_t options);
 
 #endif

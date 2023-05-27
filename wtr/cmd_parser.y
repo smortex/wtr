@@ -104,8 +104,9 @@ report_options_t empty_options;
 %token <integer> INTEGER
 %token ROUNDING
 %token ON
+%token GRAPH
 
-%type <report_options> moment report_part report
+%type <report_options> moment report_part report recursive_time_span time_span
 %type <integer> time_unit
 %type <integer> duration
 %type <projects> projects
@@ -118,21 +119,30 @@ command: ACTIVE YYEOF { wtr_active(); }
        | ADD duration TO PROJECT YYEOF { wtr_add_duration_to_project($2, $4); }
        | REMOVE duration FROM PROJECT YYEOF { wtr_add_duration_to_project(- $2, $4); }
        | report YYEOF {  wtr_report($1); }
+       | GRAPH recursive_time_span YYEOF { wtr_graph($2); }
        ;
 
 report: report report_part { $$ = combine_report_parts($1, $2); }
       | report_part { $$ = $1; }
       ;
 
-report_part: moment { $$ = empty_options; $$.since = $1.since; $$.until = $1.until; }
-	   | SINCE DATE { $$ = empty_options; $$.since = $2; }
-	   | UNTIL DATE { $$ = empty_options; $$.until = $2; }
-	   | SINCE moment { $$ = empty_options; $$.since = $2.since; }
-	   | UNTIL moment { $$ = empty_options; $$.until = $2.since; }
+report_part: time_span { $$ = $1; }
 	   | BY time_unit { $$ = empty_options; $$.next = time_unit_functions[$2].add; }
 	   | ROUNDING DURATION { $$ = empty_options; $$.rounding = $2; }
 	   | ON projects { $$ = empty_options; $$.projects = $2; }
 	   ;
+
+recursive_time_span: recursive_time_span time_span { $$ = combine_report_parts($1, $2); }
+		   | time_span { $$ = $1; }
+		   ;
+
+time_span: moment { $$ = empty_options; $$.since = $1.since; $$.until = $1.until; }
+	 | SINCE DATE { $$ = empty_options; $$.since = $2; }
+	 | UNTIL DATE { $$ = empty_options; $$.until = $2; }
+	 | SINCE moment { $$ = empty_options; $$.since = $2.since; }
+	 | UNTIL moment { $$ = empty_options; $$.until = $2.since; }
+	 ;
+
 
 duration: INTEGER
 	| DURATION
