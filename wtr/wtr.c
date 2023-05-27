@@ -281,6 +281,26 @@ wtr_graph(report_options_t options)
 
 	int min = INT_MAX;
 	int max = 0;
+	printf("    ");
+	for (int week = 0; week < nweeks ; week++) {
+		time_t s = add_week(since, week);
+		time_t u = add_week(s, 1);
+
+		struct tm tms, tmu;
+		localtime_r(&s, &tms);
+		localtime_r(&u, &tmu);
+
+		if (week == 0 || tms.tm_mday == 1 || (tmu.tm_mday > 1 && tmu.tm_mday < 8)) {
+			char buf[10];
+			strftime(buf, sizeof(buf), "%b", &tmu);
+
+			printf("%-4s", buf);
+		} else {
+			printf("    ");
+		}
+	}
+	printf("\n");
+
 	for (int day_of_week = 0; day_of_week < 7; day_of_week++) {
 		for (int week = 0; week < nweeks ; week++) {
 			time_t t = add_week(add_day(since, day_of_week), week);
@@ -298,6 +318,17 @@ wtr_graph(report_options_t options)
 	}
 
 	for (int day_of_week = 0; day_of_week < 7; day_of_week++) {
+		if (day_of_week == 1 || day_of_week == 3 || day_of_week == 5) {
+			time_t t = add_day(since, day_of_week);
+			struct tm *tm = localtime(&t);
+			char buf[10];
+			strftime(buf, sizeof(buf), "%a", tm);
+
+			printf("%-4s", buf);
+		} else {
+			printf("    ");
+		}
+
 		for (int week = 0; week < nweeks ; week++) {
 			time_t t = add_week(add_day(since, day_of_week), week);
 			if (t < options.since || t >= until) {
