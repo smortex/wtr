@@ -119,8 +119,10 @@ command: ACTIVE YYEOF { wtr_active(); }
        | ADD duration TO PROJECT YYEOF { wtr_add_duration_to_project($2, $4); }
        | REMOVE duration FROM PROJECT YYEOF { wtr_add_duration_to_project(- $2, $4); }
        | report YYEOF {  wtr_report($1); }
-       | GRAPH YYEOF { wtr_graph_auto(); }
+       | GRAPH YYEOF { wtr_graph_auto(NULL); }
+       | GRAPH ON projects YYEOF { wtr_graph_auto($3); }
        | GRAPH recursive_time_span YYEOF { wtr_graph($2); }
+       | GRAPH recursive_time_span ON projects YYEOF { $2.projects = $4; wtr_graph($2); }
        ;
 
 report: report report_part { $$ = combine_report_parts($1, $2); }

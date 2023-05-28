@@ -5,6 +5,7 @@
 #include <sys/wait.h>
 
 #include <err.h>
+#include <glib.h>
 #include <stdio.h>
 #include <string.h>
 #include <termios.h>
@@ -272,6 +273,21 @@ wtr_graph(report_options_t options)
 
 	time_t tomorrow = add_day(today(), 1);
 
+	GString *and_project_in;
+	if (options.projects) {
+		and_project_in = g_string_new(" AND project_id IN (");
+		project_list_t *item = options.projects;
+
+		for (item = options.projects; item; item = item->next) {
+			g_string_append_printf(and_project_in, "%d", item->id);
+			if (item->next)
+				g_string_append(and_project_in, ", ");
+		}
+		g_string_append(and_project_in, ")");
+	} else {
+		and_project_in = g_string_new("");
+	}
+
 	if (!until)
 		until = tomorrow;
 
@@ -311,7 +327,7 @@ wtr_graph(report_options_t options)
 			if (t < options.since || t >= until) {
 				durations[week * 7 + day_of_week] = 0;
 			} else {
-				int duration = database_get_duration(t, add_day(t, 1));
+				int duration = database_get_duration(t, add_day(t, 1), and_project_in->str);
 				durations[week * 7 + day_of_week] = duration;
 				if (duration > max)
 					max = duration;
@@ -370,6 +386,7 @@ wtr_graph(report_options_t options)
 		printf("\n");
 	}
 
+	g_string_free(and_project_in, TRUE);
 	free(durations);
 }
 
@@ -390,7 +407,7 @@ terminal_width(void)
 }
 
 void
-wtr_graph_auto(void)
+wtr_graph_auto(project_list_t *projects)
 {
 	int weeks = (terminal_width() - 4) / 4 - 1;
 	/*                              |    |   `--- current week
@@ -403,7 +420,7 @@ wtr_graph_auto(void)
 		.until = add_day(today(), 1),
 		.next = NULL,
 		.rounding = 0,
-		.projects = NULL,
+		.projects = projects,
 	};
 
 	wtr_graph(auto_options);
