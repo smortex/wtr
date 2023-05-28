@@ -191,12 +191,12 @@ database_project_add_duration(int project_id, time_t date, int duration)
 }
 
 int
-database_get_duration(time_t since, time_t until)
+database_get_duration(time_t since, time_t until, const char *and_project_in)
 {
 	int duration = 0;
 	char *sql = NULL;
 	char *errmsg;
-	if (asprintf(&sql, "SELECT SUM(duration) FROM activity WHERE date >= %ld AND date < %ld", since, until) < 0) {
+	if (asprintf(&sql, "SELECT SUM(duration) FROM activity WHERE date >= %ld AND date < %ld%s", since, until, and_project_in) < 0) {
 		err(EXIT_FAILURE, "asprintf");
 		/* NOTREACHED */
 	}
