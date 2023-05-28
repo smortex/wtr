@@ -1,9 +1,13 @@
 #include <sys/param.h>
+#if defined(__Linux__)
+#  include <sys/ioctl.h>
+#endif
 #include <sys/wait.h>
 
 #include <err.h>
 #include <stdio.h>
 #include <string.h>
+#include <termios.h>
 #include <unistd.h>
 
 #include "wtr.h"
@@ -367,4 +371,40 @@ wtr_graph(report_options_t options)
 	}
 
 	free(durations);
+}
+
+int
+terminal_width(void)
+{
+#if defined(__Linux__)
+	struct winsize ws;
+	ioctl(0, TIOCGWINSZ, &ws);
+	return ws.ws_col;
+#elif defined(__FreeBSD__)
+	struct winsize ws;
+	tcgetwinsize(0, &ws);
+	return ws.ws_col;
+#else
+	return 80;
+#endif
+}
+
+void
+wtr_graph_auto(void)
+{
+	int weeks = (terminal_width() - 4) / 4 - 1;
+	/*                              |    |   `--- current week
+	 *                              |    `------- width of a day
+	 *                              `------------ length of header
+	 */
+
+	report_options_t auto_options = {
+		.since = beginning_of_week(add_week(today(), -weeks)),
+		.until = add_day(today(), 1),
+		.next = NULL,
+		.rounding = 0,
+		.projects = NULL,
+	};
+
+	wtr_graph(auto_options);
 }

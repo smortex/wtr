@@ -33,5 +33,6 @@ void		 wtr_edit(void);
 void		 wtr_list(void);
 void		 wtr_report(report_options_t options);
 void		 wtr_graph(report_options_t options);
+void		 wtr_graph_auto(void);
 
 #endif
