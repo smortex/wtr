@@ -4,6 +4,7 @@
 #include <err.h>
 #include <stdio.h>
 #include <string.h>
+#include <termios.h>
 #include <unistd.h>
 
 #include "wtr.h"
@@ -367,4 +368,26 @@ wtr_graph(report_options_t options)
 	}
 
 	free(durations);
+}
+
+void
+wtr_graph_auto(void)
+{
+	struct winsize winsize;
+	tcgetwinsize(0, &winsize);
+	int weeks = (winsize.ws_col - 4) / 4 - 1;
+	/*                            |    |   `--- current week
+	 *                            |    `------- width of a day
+	 *                            `------------ length of header
+	 */
+
+	report_options_t auto_options = {
+		.since = beginning_of_week(add_week(today(), -weeks)),
+		.until = add_day(today(), 1),
+		.next = NULL,
+		.rounding = 0,
+		.projects = NULL,
+	};
+
+	wtr_graph(auto_options);
 }

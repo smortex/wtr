@@ -119,6 +119,7 @@ command: ACTIVE YYEOF { wtr_active(); }
        | ADD duration TO PROJECT YYEOF { wtr_add_duration_to_project($2, $4); }
        | REMOVE duration FROM PROJECT YYEOF { wtr_add_duration_to_project(- $2, $4); }
        | report YYEOF {  wtr_report($1); }
+       | GRAPH YYEOF { wtr_graph_auto(); }
        | GRAPH recursive_time_span YYEOF { wtr_graph($2); }
        ;
 
