@@ -304,13 +304,13 @@ wtr_graph(report_options_t options)
 	printf("    ");
 	for (int week = 0; week < nweeks ; week++) {
 		time_t s = add_week(since, week);
-		time_t u = add_week(s, 1);
+		time_t u = add_day(add_week(s, 1), -1);
 
 		struct tm tms, tmu;
 		localtime_r(&s, &tms);
 		localtime_r(&u, &tmu);
 
-		if (week == 0 || tms.tm_mday == 1 || (tmu.tm_mday > 1 && tmu.tm_mday < 8)) {
+		if (week == 0 || (tmu.tm_mday >= 1 && tmu.tm_mday < 8)) {
 			char buf[10];
 			strftime(buf, sizeof(buf), "%b", &tmu);
 
@@ -385,6 +385,26 @@ wtr_graph(report_options_t options)
 		printf("\033[31;0m");
 		printf("\n");
 	}
+
+	printf("    ");
+	for (int week = 0; week < nweeks ; week++) {
+		time_t s = add_week(since, week);
+		time_t u = add_week(s, 1);
+
+		struct tm tms, tmu;
+		localtime_r(&s, &tms);
+		localtime_r(&u, &tmu);
+
+		if (week == 0 || (tmu.tm_yday >= 1 && tmu.tm_yday < 8)) {
+			char buf[10];
+			strftime(buf, sizeof(buf), "%Y", &tmu);
+
+			printf("%-4s", buf);
+		} else {
+			printf("    ");
+		}
+	}
+	printf("\n");
 
 	g_string_free(and_project_in, TRUE);
 	free(durations);
