@@ -43,13 +43,16 @@ usage(int exit_code)
 	fprintf(stderr, "usage: wtr <command>\n");
 	fprintf(stderr, "\n");
 	fprintf(stderr, "Commands:\n");
-	fprintf(stderr, "  add <duration> to <project>        Add work time to a project\n");
-	fprintf(stderr, "  remove <duration> from <project>   Remove work time from a project\n");
-	fprintf(stderr, "  edit                               Edit wtrd(1) configuration file\n");
-	fprintf(stderr, "  active                             List currently active projects\n");
-	fprintf(stderr, "  list                               List known projects\n");
-	fprintf(stderr, "  <report>                           Report time spent on projects\n");
-	fprintf(stderr, "  graph <time-span>                  Visually represent time spent on projects\n");
+	fprintf(stderr, "  add <duration> to <project>               Add work time to a project\n");
+	fprintf(stderr, "  add <duration> to <project> <when>\n");
+	fprintf(stderr, "  remove <duration> from <project>          Remove work time from a project\n");
+	fprintf(stderr, "  remove <duration> from <project> <when>\n");
+	fprintf(stderr, "  edit                                      Edit wtrd(1) configuration file\n");
+	fprintf(stderr, "  active                                    List currently active projects\n");
+	fprintf(stderr, "  list                                      List known projects\n");
+	fprintf(stderr, "  <report>                                  Report time spent on projects\n");
+	fprintf(stderr, "  graph <time-span>                         Visually represent time spent on\n");
+	fprintf(stderr, "                                            projects\n");
 	fprintf(stderr, "\n");
 	fprintf(stderr, "Durations:\n");
 	fprintf(stderr, "  <sec>\n");
@@ -131,7 +134,7 @@ wtr_active(void)
 }
 
 void
-wtr_add_duration_to_project(int duration, const char *project)
+wtr_add_duration_to_project_on(int duration, const char *project, time_t date)
 {
 	int project_id = database_project_find_by_name(project);
 	if (project_id < 0) {
@@ -139,7 +142,7 @@ wtr_add_duration_to_project(int duration, const char *project)
 	}
 	for (size_t i = 0; i < nprojects; i++) {
 		if (project_id == projects[i].id) {
-			database_project_add_duration(projects[i].id, today(), duration);
+			database_project_add_duration(projects[i].id, date, duration);
 		}
 	}
 }
