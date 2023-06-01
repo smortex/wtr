@@ -116,8 +116,10 @@ report_options_t empty_options;
 command: ACTIVE YYEOF { wtr_active(); }
        | EDIT YYEOF { wtr_edit(); }
        | LIST YYEOF { wtr_list(); }
-       | ADD duration TO PROJECT YYEOF { wtr_add_duration_to_project($2, $4); }
-       | REMOVE duration FROM PROJECT YYEOF { wtr_add_duration_to_project(- $2, $4); }
+       | ADD duration TO PROJECT YYEOF { wtr_add_duration_to_project_on($2, $4, today()); }
+       | REMOVE duration FROM PROJECT YYEOF { wtr_add_duration_to_project_on(- $2, $4, today()); }
+       | ADD duration TO PROJECT moment YYEOF { wtr_add_duration_to_project_on($2, $4, $5.since); }
+       | REMOVE duration FROM PROJECT moment YYEOF { wtr_add_duration_to_project_on(- $2, $4, $5.since); }
        | report YYEOF {  wtr_report($1); }
        | GRAPH YYEOF { wtr_graph_auto(NULL); }
        | GRAPH ON projects YYEOF { wtr_graph_auto($3); }
