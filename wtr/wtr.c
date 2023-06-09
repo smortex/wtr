@@ -6,10 +6,12 @@
 
 #include <err.h>
 #include <glib.h>
+#include <locale.h>
 #include <stdio.h>
 #include <string.h>
 #include <termios.h>
 #include <unistd.h>
+#include <wchar.h>
 
 #include "wtr.h"
 #include "../libwtr/libwtr.h"
@@ -93,6 +95,7 @@ char **global_argv;
 int
 main(int argc, char *argv[])
 {
+	setlocale(LC_ALL, "");
 	if (database_open() < 0) {
 		exit(1);
 	}
@@ -317,7 +320,14 @@ wtr_graph(report_options_t options)
 			char buf[10];
 			strftime(buf, sizeof(buf), "%b", &tmu);
 
-			printf("%-4s", buf);
+			if (buf[strlen(buf) - 1] == '.')
+				buf[strlen(buf) - 1] = '\0';
+
+			wchar_t wbuf[4];
+			const char *p = buf;
+			mbsrtowcs(wbuf, &p, 4, NULL);
+
+			wprintf(L"%-4.4ls", wbuf);
 		} else {
 			printf("    ");
 		}
@@ -347,7 +357,14 @@ wtr_graph(report_options_t options)
 			char buf[10];
 			strftime(buf, sizeof(buf), "%a", tm);
 
-			printf("%-4s", buf);
+			if (buf[strlen(buf) - 1] == '.')
+				buf[strlen(buf) - 1] = '\0';
+
+			wchar_t wbuf[4];
+			const char *p = buf;
+			mbsrtowcs(wbuf, &p, 4, NULL);
+
+			wprintf(L"%-4.4ls", wbuf);
 		} else {
 			printf("    ");
 		}
