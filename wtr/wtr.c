@@ -1,5 +1,5 @@
 #include <sys/param.h>
-#if defined(__Linux__)
+#if defined(__linux__)
 #  include <sys/ioctl.h>
 #endif
 #include <sys/wait.h>
@@ -416,7 +416,7 @@ wtr_graph(report_options_t options)
 int
 terminal_width(void)
 {
-#if defined(__Linux__)
+#if defined(__linux__)
 	struct winsize ws;
 	ioctl(0, TIOCGWINSZ, &ws);
 	return ws.ws_col;
