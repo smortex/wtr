@@ -297,6 +297,8 @@ wtr_graph(report_options_t options)
 	if (!until)
 		until = tomorrow;
 
+	time_t last_day = add_day(until, -1);
+
 	int nweeks;
 	for (nweeks = 0; add_week(since, nweeks) < until; nweeks++);
 
@@ -310,13 +312,13 @@ wtr_graph(report_options_t options)
 	printf("    ");
 	for (int week = 0; week < nweeks ; week++) {
 		time_t s = add_week(since, week);
-		time_t u = add_day(add_week(s, 1), -1);
+		time_t u = MIN(add_day(add_week(s, 1), -1), last_day);
 
 		struct tm tms, tmu;
 		localtime_r(&s, &tms);
 		localtime_r(&u, &tmu);
 
-		if (week == 0 || (tmu.tm_mday >= 1 && tmu.tm_mday < 8)) {
+		if (week == 0 || tms.tm_mday == 1 || tmu.tm_mday < tms.tm_mday) {
 			char buf[10];
 			strftime(buf, sizeof(buf), "%b", &tmu);
 
@@ -409,13 +411,13 @@ wtr_graph(report_options_t options)
 	printf("    ");
 	for (int week = 0; week < nweeks ; week++) {
 		time_t s = add_week(since, week);
-		time_t u = add_week(s, 1);
+		time_t u = MIN(add_week(s, 1), last_day);
 
 		struct tm tms, tmu;
 		localtime_r(&s, &tms);
 		localtime_r(&u, &tmu);
 
-		if (week == 0 || (tmu.tm_yday >= 1 && tmu.tm_yday < 8)) {
+		if (week == 0 || tms.tm_yday == 0 || (tmu.tm_yday > 0 && tmu.tm_yday < tms.tm_yday)) {
 			char buf[10];
 			strftime(buf, sizeof(buf), "%Y", &tmu);
 
