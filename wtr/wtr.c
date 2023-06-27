@@ -30,13 +30,13 @@ print_duration(int duration)
 	duration /= 24;
 
 	if (duration == 1)
-		printf("%3d day  %2d:%02d:%02d", duration, hrs, min, sec);
+		wprintf(L"%3d day  %2d:%02d:%02d", duration, hrs, min, sec);
 	else if (duration > 1)
-		printf("%3d days %2d:%02d:%02d", duration, hrs, min, sec);
+		wprintf(L"%3d days %2d:%02d:%02d", duration, hrs, min, sec);
 	else if (hrs > 0)
-		printf("         %2d:%02d:%02d", hrs, min, sec);
+		wprintf(L"         %2d:%02d:%02d", hrs, min, sec);
 	else
-		printf("            %2d:%02d", min, sec);
+		wprintf(L"            %2d:%02d", min, sec);
 }
 
 static void
@@ -131,7 +131,7 @@ wtr_active(void)
 
 	for (size_t i = 0; i < nprojects; i++) {
 		if (projects[i].active) {
-			printf("%s\n", projects[i].name);
+			wprintf(L"%s\n", projects[i].name);
 		}
 	}
 }
@@ -175,7 +175,7 @@ void
 wtr_list(void)
 {
 	for (size_t i = 0; i < nprojects; i++) {
-		printf("%s\n", projects[i].name);
+		wprintf(L"%s\n", projects[i].name);
 	}
 }
 
@@ -203,6 +203,11 @@ wtr_report(report_options_t options)
 	if (asprintf(&format_string, "    %%-%ds ", longest_name) < 0)
 		err(EXIT_FAILURE, "asprintf");
 
+	wchar_t *wformat_string = malloc(sizeof(wchar_t) * (strlen(format_string) + 1));
+	const char *p = format_string;
+	mbsrtowcs(wformat_string, &p, BUFSIZ, NULL);
+
+
 	while (since < until) {
 		time_t stop = until;
 
@@ -212,7 +217,7 @@ wtr_report(report_options_t options)
 		char ssince[BUFSIZ], suntil[BUFSIZ];
 		strftime(ssince, BUFSIZ, "%F", localtime(&since));
 		strftime(suntil, BUFSIZ, "%F", localtime(&stop));
-		printf("wtr since %s until %s\n\n", ssince, suntil);
+		wprintf(L"wtr since %s until %s\n\n", ssince, suntil);
 
 		int total_duration = 0;
 		for (size_t i = 0; i < nprojects; i++) {
@@ -240,34 +245,35 @@ wtr_report(report_options_t options)
 			if (options.rounding && project_duration % options.rounding)
 				project_duration = (project_duration / options.rounding + 1) * options.rounding;
 
-			printf(format_string, projects[i].name);
+			wprintf(wformat_string, projects[i].name);
 			print_duration(project_duration);
 			if (currently_active) {
-				printf(" +");
+				wprintf(L" +");
 			}
-			printf("\n");
+			wprintf(L"\n");
 
 			total_duration += project_duration;
 		}
 
-		printf("    ");
+		wprintf(L"    ");
 		for (int i = 0; i < longest_name + 18; i++) {
-			printf("-");
+			wprintf(L"-");
 		}
-		printf("\n");
-		printf(format_string, "Total");
+		wprintf(L"\n");
+		wprintf(wformat_string, "Total");
 		print_duration(total_duration);
-		printf("\n");
+		wprintf(L"\n");
 
 		if (!options.next)
 			return;
 
 		since = options.next(since, 1);
 		if (since < until)
-			printf("\n");
+			wprintf(L"\n");
 	}
 
 	project_list_free(options.projects);
+	free(wformat_string);
 	free(format_string);
 }
 
@@ -309,7 +315,7 @@ wtr_graph(report_options_t options)
 
 	int min = INT_MAX;
 	int max = 0;
-	printf("    ");
+	wprintf(L"    ");
 	for (int week = 0; week < nweeks ; week++) {
 		time_t s = add_week(since, week);
 		time_t u = MIN(add_day(add_week(s, 1), -1), last_day);
@@ -331,10 +337,10 @@ wtr_graph(report_options_t options)
 
 			wprintf(L"%-4.4ls", wbuf);
 		} else {
-			printf("    ");
+			wprintf(L"    ");
 		}
 	}
-	printf("\n");
+	wprintf(L"\n");
 
 	for (int day_of_week = 0; day_of_week < 7; day_of_week++) {
 		for (int week = 0; week < nweeks ; week++) {
@@ -368,14 +374,14 @@ wtr_graph(report_options_t options)
 
 			wprintf(L"%-4.4ls", wbuf);
 		} else {
-			printf("    ");
+			wprintf(L"    ");
 		}
 
 		for (int week = 0; week < nweeks ; week++) {
 			time_t t = add_week(add_day(since, day_of_week), week);
 			if (t < options.since || t >= until) {
-				printf("\033[48;2;235;237;240m");
-				printf("    ");
+				wprintf(L"\033[48;2;235;237;240m");
+				wprintf(L"    ");
 			} else {
 				struct tm* day = localtime(&t);
 				int duration = durations[week * 7 + day_of_week];
@@ -390,25 +396,25 @@ wtr_graph(report_options_t options)
 					int red = relative_ratio * (155 - 33) + 33;
 					int green = relative_ratio * (233 - 110) + 110;
 					int blue = relative_ratio * (168 - 57) + 57;
-					printf("\033[48;2;%d;%d;%dm", red, green, blue);
+					wprintf(L"\033[48;2;%d;%d;%dm", red, green, blue);
 					if (red + green + blue > 255 * 1.5) {
-						printf("\033[38;2;101;109;118m");
+						wprintf(L"\033[38;2;101;109;118m");
 					} else {
-						printf("\033[38;2;235;237;240m");
+						wprintf(L"\033[38;2;235;237;240m");
 					}
 				} else {
-					printf("\033[48;2;235;237;240m");
-					printf("\033[38;2;101;109;118m");
+					wprintf(L"\033[48;2;235;237;240m");
+					wprintf(L"\033[38;2;101;109;118m");
 				}
 
-				printf(" %2d ", day->tm_mday);
+				wprintf(L" %2d ", day->tm_mday);
 			}
 		}
-		printf("\033[31;0m");
-		printf("\n");
+		wprintf(L"\033[31;0m");
+		wprintf(L"\n");
 	}
 
-	printf("    ");
+	wprintf(L"    ");
 	for (int week = 0; week < nweeks ; week++) {
 		time_t s = add_week(since, week);
 		time_t u = MIN(add_week(s, 1), last_day);
@@ -421,12 +427,12 @@ wtr_graph(report_options_t options)
 			char buf[10];
 			strftime(buf, sizeof(buf), "%Y", &tmu);
 
-			printf("%-4s", buf);
+			wprintf(L"%-4s", buf);
 		} else {
-			printf("    ");
+			wprintf(L"    ");
 		}
 	}
-	printf("\n");
+	wprintf(L"\n");
 
 	g_string_free(and_project_in, TRUE);
 	free(durations);
