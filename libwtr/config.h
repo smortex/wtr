@@ -3,8 +3,10 @@
 
 #include <stdlib.h>
 
+#include "database.h"
+
 char		*config_file_path(void);
-int		 config_load(void);
+int		 config_load(struct database *database);
 void		 config_free(void);
 
 extern size_t nprojects;

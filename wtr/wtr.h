@@ -3,6 +3,8 @@
 
 #include <time.h>
 
+#include "../libwtr/database.h"
+
 typedef struct {
     int day;
     int week;
@@ -23,16 +25,16 @@ typedef struct {
     project_list_t *projects;
 } report_options_t;
 
-project_list_t	*project_list_new(const char *name);
-project_list_t	*project_list_add(project_list_t *head, const char *name);
+project_list_t	*project_list_new(struct database *database, const char *name);
+project_list_t	*project_list_add(struct database *database, project_list_t *head, const char *name);
 void		 project_list_free(project_list_t *head);
 
 void		 wtr_active(void);
-void		 wtr_add_duration_to_project_on(int duration, const char *project, time_t date);
+void		 wtr_add_duration_to_project_on(struct database *database, int duration, const char *project, time_t date);
 void		 wtr_edit(void);
 void		 wtr_list(void);
-void		 wtr_report(report_options_t options);
-void		 wtr_graph(report_options_t options);
-void		 wtr_graph_auto(project_list_t *projects);
+void		 wtr_report(struct database *database, report_options_t options);
+void		 wtr_graph(struct database *database, report_options_t options);
+void		 wtr_graph_auto(struct database *database, project_list_t *projects);
 
 #endif

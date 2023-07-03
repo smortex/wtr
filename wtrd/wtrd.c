@@ -11,14 +11,14 @@ GMainLoop *main_loop;
 GMutex roots_mutex;
 
 void
-record_working_time(void)
+record_working_time(struct database *database)
 {
 	time_t now = time(0);
 	time_t date = beginning_of_day(now);
 
 	for (gsize i = 0; i < nprojects; i++) {
 		if (projects[i].active) {
-			database_project_add_duration(projects[i].id, date, check_interval);
+			database_project_add_duration(database, projects[i].id, date, check_interval);
 		}
 	}
 }
@@ -34,12 +34,12 @@ reset_working_time(void)
 gboolean
 tick(gpointer user_data)
 {
-	(void) user_data;
+	struct database *database = (struct database *)user_data;
 
 	g_mutex_lock(&roots_mutex);
 	reset_working_time();
 	each_user_process_working_directory(process_working_directory);
-	record_working_time();
+	record_working_time(database);
 	g_mutex_unlock(&roots_mutex);
 
 	return G_SOURCE_CONTINUE;
@@ -58,11 +58,11 @@ terminate(gpointer user_data)
 gboolean
 reload_config(gpointer user_data)
 {
-	(void) user_data;
+	struct database *database = (struct database *)user_data;
 
 	g_mutex_lock(&roots_mutex);
 	config_free();
-	if (config_load() < 0) {
+	if (config_load(database) < 0) {
 		exit(1);
 	}
 	g_mutex_unlock(&roots_mutex);
@@ -83,11 +83,12 @@ child_watch(GPid pid, gint status, gpointer user_data)
 int
 main(int argc, char *argv[])
 {
-	if (database_open() < 0) {
+	struct database *database;
+	if (!(database = database_open())) {
 		exit(1);
 	}
 
-	if (config_load() < 0) {
+	if (config_load(database) < 0) {
 		exit(1);
 	}
 
@@ -118,14 +119,14 @@ main(int argc, char *argv[])
 
 	}
 
-	g_timeout_add(check_interval * 1000, tick, NULL);
+	g_timeout_add(check_interval * 1000, tick, database);
 	g_unix_signal_add(SIGINT, terminate, NULL);
-	g_unix_signal_add(SIGHUP, reload_config, NULL);
+	g_unix_signal_add(SIGHUP, reload_config, database);
 
 	g_main_loop_run(main_loop);
 
 	config_free();
-	database_close();
+	database_close(database);
 
 	exit(EXIT_SUCCESS);
 }

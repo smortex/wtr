@@ -26,7 +26,7 @@ config_file_path(void)
 }
 
 int
-config_load(void)
+config_load(struct database *database)
 {
 	char *conf_file_path = config_file_path();
 
@@ -59,7 +59,7 @@ config_load(void)
 			return -1;
 		}
 
-		projects[i].id = database_project_find_or_create_by_name(groups[i]);
+		projects[i].id = database_project_find_or_create_by_name(database, groups[i]);
 		projects[i].name = g_strdup(groups[i]);
 		projects[i].root = realpath(root, NULL);
 		projects[i].active = 0;
