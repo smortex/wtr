@@ -96,11 +96,12 @@ int
 main(int argc, char *argv[])
 {
 	setlocale(LC_ALL, "");
-	if (database_open() < 0) {
+	struct database *database;
+	if (!(database = database_open())) {
 		exit(1);
 	}
 
-	if (config_load() < 0) {
+	if (config_load(database) < 0) {
 		exit(1);
 	}
 
@@ -113,13 +114,13 @@ main(int argc, char *argv[])
 	}
 
 	yy_scan_string(global_argv[0]);
-	if (yyparse()) {
+	if (yyparse(database)) {
 		usage(EXIT_FAILURE);
 		/* NOTREACHED */
 	}
 
 	config_free();
-	database_close();
+	database_close(database);
 
 	exit(EXIT_SUCCESS);
 }
@@ -137,15 +138,15 @@ wtr_active(void)
 }
 
 void
-wtr_add_duration_to_project_on(int duration, const char *project, time_t date)
+wtr_add_duration_to_project_on(struct database *database, int duration, const char *project, time_t date)
 {
-	int project_id = database_project_find_by_name(project);
+	int project_id = database_project_find_by_name(database, project);
 	if (project_id < 0) {
 		errx(EXIT_FAILURE, "unknown project: %s", project);
 	}
 	for (size_t i = 0; i < nprojects; i++) {
 		if (project_id == projects[i].id) {
-			database_project_add_duration(projects[i].id, date, duration);
+			database_project_add_duration(database, projects[i].id, date, duration);
 		}
 	}
 }
@@ -180,7 +181,7 @@ wtr_list(void)
 }
 
 void
-wtr_report(report_options_t options)
+wtr_report(struct database *database, report_options_t options)
 {
 	time_t since = options.since;
 	time_t until = options.until;
@@ -237,7 +238,7 @@ wtr_report(report_options_t options)
 			int project_duration;
 			int currently_active = projects[i].active && since <= now && now < stop;
 
-			project_duration = database_project_get_duration(projects[i].id, since, stop);
+			project_duration = database_project_get_duration(database, projects[i].id, since, stop);
 
 			if (project_duration == 0 && !currently_active)
 				continue;
@@ -278,7 +279,7 @@ wtr_report(report_options_t options)
 }
 
 void
-wtr_graph(report_options_t options)
+wtr_graph(struct database *database, report_options_t options)
 {
 	time_t since = beginning_of_week(options.since);
 	time_t until = options.until;
@@ -348,7 +349,7 @@ wtr_graph(report_options_t options)
 			if (t < options.since || t >= until) {
 				durations[week * 7 + day_of_week] = 0;
 			} else {
-				int duration = database_get_duration(t, add_day(t, 1), and_project_in->str);
+				int duration = database_get_duration(database, t, add_day(t, 1), and_project_in->str);
 				durations[week * 7 + day_of_week] = duration;
 				if (duration > max)
 					max = duration;
@@ -455,7 +456,7 @@ terminal_width(void)
 }
 
 void
-wtr_graph_auto(project_list_t *projects)
+wtr_graph_auto(struct database *database, project_list_t *projects)
 {
 	int weeks = (terminal_width() - 4) / 4 - 1;
 	/*                              |    |   `--- current week
@@ -471,5 +472,5 @@ wtr_graph_auto(project_list_t *projects)
 		.projects = projects,
 	};
 
-	wtr_graph(auto_options);
+	wtr_graph(database, auto_options);
 }

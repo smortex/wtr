@@ -6,9 +6,11 @@
 
 #include "database.h"
 
-static void	 database_migrate(void);
+struct database {
+	sqlite3 *db;
+};
 
-sqlite3 *db;
+static void	 database_migrate(struct database *database);
 
 struct migration {
 	int applied;
@@ -19,34 +21,42 @@ struct migration {
 	{ 0, "202305011058", "CREATE TABLE activity (project_id INTEGER, date INTEGER, duration INTEGER, PRIMARY KEY (project_id, date))" },
 };
 
-int
+struct database *
 database_open(void)
 {
 	gchar *database_dir_path = g_build_path(G_DIR_SEPARATOR_S, g_get_user_data_dir(), "wtr", NULL);
 	if (g_mkdir_with_parents(database_dir_path, 0700) < 0) {
 		warn("Could not create %s", database_dir_path);
-		return -1;
+		return NULL;
+	}
+
+	struct database *res;
+	if (!(res = malloc(sizeof(*res)))) {
+	    warn("Cannot allocate memory");
+	    return NULL;
 	}
 
 	gchar *database_file_path = g_build_path(G_DIR_SEPARATOR_S, database_dir_path, "database.sqlite", NULL);
-	if (sqlite3_open(database_file_path, &db) != SQLITE_OK) {
-		sqlite3_close(db);
+	if (sqlite3_open(database_file_path, &res->db) != SQLITE_OK) {
 		warn("Cannot open database");
-		return -1;
+		sqlite3_close(res->db);
+		free(res);
+		return NULL;
 	}
 
-	if (sqlite3_busy_timeout(db, 1000) != SQLITE_OK) {
+	if (sqlite3_busy_timeout(res->db, 1000) != SQLITE_OK) {
 		warn("Connet set database busy timeout");
-		sqlite3_close(db);
-		return -1;
+		sqlite3_close(res->db);
+		free(res);
+		return NULL;
 	}
 
 	free(database_file_path);
 	free(database_dir_path);
 
-	database_migrate();
+	database_migrate(res);
 
-	return 0;
+	return res;
 }
 
 static int
@@ -66,17 +76,17 @@ find_applied_migrations(void *not_used, int argc, char **argv, char **column_nam
 }
 
 static void
-database_migrate(void)
+database_migrate(struct database *database)
 {
 	char *errmsg = NULL;
 	int rc;
 
-	rc = sqlite3_exec(db, "SELECT migration FROM information_schema", find_applied_migrations, 0, &errmsg);
+	rc = sqlite3_exec(database->db, "SELECT migration FROM information_schema", find_applied_migrations, 0, &errmsg);
 	switch (rc) {
 	case SQLITE_OK:
 		break;
 	case SQLITE_ERROR:
-		rc = sqlite3_exec(db, "CREATE TABLE information_schema (migration VARCHAR(255) PRIMARY KEY)", NULL, 0, &errmsg);
+		rc = sqlite3_exec(database->db, "CREATE TABLE information_schema (migration VARCHAR(255) PRIMARY KEY)", NULL, 0, &errmsg);
 		if (rc != SQLITE_OK) {
 			errx(EXIT_FAILURE, "Failed to create the information_schema table: %s", errmsg);
 			/* NOTREACHED */
@@ -89,11 +99,11 @@ database_migrate(void)
 
 	for (size_t i = 0; i < sizeof(migrations) / sizeof(*migrations); i++) {
 		if (!migrations[i].applied) {
-			if (sqlite3_exec(db, "BEGIN TRANSACTION", NULL, 0, &errmsg) != SQLITE_OK) {
+			if (sqlite3_exec(database->db, "BEGIN TRANSACTION", NULL, 0, &errmsg) != SQLITE_OK) {
 				errx(EXIT_FAILURE, "%s", errmsg);
 				/* NOTREACHED */
 			}
-			if (sqlite3_exec(db, migrations[i].sql, NULL, 0, &errmsg) != SQLITE_OK) {
+			if (sqlite3_exec(database->db, migrations[i].sql, NULL, 0, &errmsg) != SQLITE_OK) {
 				errx(EXIT_FAILURE, "%s", errmsg);
 				/* NOTREACHED */
 			}
@@ -102,12 +112,12 @@ database_migrate(void)
 				err(EXIT_FAILURE, "asprintf");
 				/* NOTREACHED */
 			}
-			if (sqlite3_exec(db, sql, NULL, 0, &errmsg) != SQLITE_OK) {
+			if (sqlite3_exec(database->db, sql, NULL, 0, &errmsg) != SQLITE_OK) {
 				errx(EXIT_FAILURE, "%s", errmsg);
 				/* NOTREACHED */
 			}
 			free(sql);
-			if (sqlite3_exec(db, "COMMIT", NULL, 0, &errmsg) != SQLITE_OK) {
+			if (sqlite3_exec(database->db, "COMMIT", NULL, 0, &errmsg) != SQLITE_OK) {
 				errx(EXIT_FAILURE, "%s", errmsg);
 				/* NOTREACHED */
 			}
@@ -128,7 +138,7 @@ read_single_integer(void *result, int argc, char **argv, char **column_name)
 }
 
 int
-database_project_find_by_name(const char *project)
+database_project_find_by_name(struct database *database, const char *project)
 {
 	int id = -1;
 	char *sql = NULL;
@@ -138,7 +148,7 @@ database_project_find_by_name(const char *project)
 		err(EXIT_FAILURE, "asprintf");
 		/* NOTREACHED */
 	}
-	if (sqlite3_exec(db, sql, read_single_integer, &id, &errmsg) != SQLITE_OK) {
+	if (sqlite3_exec(database->db, sql, read_single_integer, &id, &errmsg) != SQLITE_OK) {
 		errx(EXIT_FAILURE, "%s", errmsg);
 		/* NOTREACHED */
 	}
@@ -148,12 +158,12 @@ database_project_find_by_name(const char *project)
 }
 
 int
-database_project_find_or_create_by_name(const char *project)
+database_project_find_or_create_by_name(struct database *database, const char *project)
 {
 	int id = -1;
 	char *sql = NULL;
 
-	id = database_project_find_by_name(project);
+	id = database_project_find_by_name(database, project);
 	char *errmsg;
 
 	if (id < 0) {
@@ -161,20 +171,20 @@ database_project_find_or_create_by_name(const char *project)
 			err(EXIT_FAILURE, "asprintf");
 			/* NOTREACHED */
 		}
-		if (sqlite3_exec(db, sql, NULL, NULL, &errmsg) != SQLITE_OK) {
+		if (sqlite3_exec(database->db, sql, NULL, NULL, &errmsg) != SQLITE_OK) {
 			errx(EXIT_FAILURE, "%s", errmsg);
 			/* NOTREACHED */
 		}
 		free(sql);
 
-		id = database_project_find_by_name(project);
+		id = database_project_find_by_name(database, project);
 	}
 
 	return id;
 }
 
 void
-database_project_add_duration(int project_id, time_t date, int duration)
+database_project_add_duration(struct database *database, int project_id, time_t date, int duration)
 {
 	char *sql;
 	char *errmsg;
@@ -183,7 +193,7 @@ database_project_add_duration(int project_id, time_t date, int duration)
 		err(EXIT_FAILURE, "asprintf");
 		/* NOTREACHED */
 	}
-	if (sqlite3_exec(db, sql, NULL, NULL, &errmsg) != SQLITE_OK) {
+	if (sqlite3_exec(database->db, sql, NULL, NULL, &errmsg) != SQLITE_OK) {
 		errx(EXIT_FAILURE, "%s", errmsg);
 		/* NOTREACHED */
 	}
@@ -191,7 +201,7 @@ database_project_add_duration(int project_id, time_t date, int duration)
 }
 
 int
-database_get_duration(time_t since, time_t until, const char *and_project_in)
+database_get_duration(struct database *database, time_t since, time_t until, const char *and_project_in)
 {
 	int duration = 0;
 	char *sql = NULL;
@@ -200,7 +210,7 @@ database_get_duration(time_t since, time_t until, const char *and_project_in)
 		err(EXIT_FAILURE, "asprintf");
 		/* NOTREACHED */
 	}
-	if (sqlite3_exec(db, sql, read_single_integer, &duration, &errmsg) != SQLITE_OK) {
+	if (sqlite3_exec(database->db, sql, read_single_integer, &duration, &errmsg) != SQLITE_OK) {
 		errx(EXIT_FAILURE, "%s", errmsg);
 		/* NOTREACHED */
 	}
@@ -210,7 +220,7 @@ database_get_duration(time_t since, time_t until, const char *and_project_in)
 }
 
 int
-database_project_get_duration(int project_id, time_t since, time_t until)
+database_project_get_duration(struct database *database, int project_id, time_t since, time_t until)
 {
 	int duration = 0;
 	char *sql = NULL;
@@ -233,7 +243,7 @@ database_project_get_duration(int project_id, time_t since, time_t until)
 		err(EXIT_FAILURE, "asprintf");
 		/* NOTREACHED */
 	}
-	if (sqlite3_exec(db, sql, read_single_integer, &duration, &errmsg) != SQLITE_OK) {
+	if (sqlite3_exec(database->db, sql, read_single_integer, &duration, &errmsg) != SQLITE_OK) {
 		errx(EXIT_FAILURE, "%s", errmsg);
 		/* NOTREACHED */
 	}
@@ -247,7 +257,8 @@ database_project_get_duration(int project_id, time_t since, time_t until)
 }
 
 void
-database_close(void)
+database_close(struct database *database)
 {
-	sqlite3_close(db);
+	sqlite3_close(database->db);
+	free(database);
 }

@@ -9,7 +9,7 @@
 #include "cmd_lexer.h"
 #include "cmd_parser.h"
 
-void		 yyerror(const char *msg);
+void		 yyerror(struct database *database, const char *msg);
 
 struct {
     time_t (*beginning_of)(time_t);
@@ -24,13 +24,13 @@ struct {
 report_options_t combine_report_parts(report_options_t a, report_options_t b);
 
 project_list_t *
-project_list_new(const char *name)
+project_list_new(struct database *database, const char *name)
 {
     project_list_t *head;
     if (!(head = malloc(sizeof(*head))))
 	return head;
 
-    head->id = database_project_find_by_name(name);
+    head->id = database_project_find_by_name(database, name);
     head->next = NULL;
 
     if (head->id < 0)
@@ -40,7 +40,7 @@ project_list_new(const char *name)
 }
 
 project_list_t *
-project_list_add(project_list_t *head, const char *name)
+project_list_add(struct database *database, project_list_t *head, const char *name)
 {
     project_list_t *tail = head;
 
@@ -51,7 +51,7 @@ project_list_add(project_list_t *head, const char *name)
 	return NULL;
 
     tail = tail->next;
-    tail->id = database_project_find_by_name(name);
+    tail->id = database_project_find_by_name(database, name);
     tail->next = NULL;
 
     if (tail->id < 0)
@@ -111,20 +111,22 @@ report_options_t empty_options;
 %type <integer> duration
 %type <projects> projects
 
+%parse-param {struct database *database}
+
 %%
 
 command: ACTIVE YYEOF { wtr_active(); }
        | EDIT YYEOF { wtr_edit(); }
        | LIST YYEOF { wtr_list(); }
-       | ADD duration TO PROJECT YYEOF { wtr_add_duration_to_project_on($2, $4, today()); }
-       | REMOVE duration FROM PROJECT YYEOF { wtr_add_duration_to_project_on(- $2, $4, today()); }
-       | ADD duration TO PROJECT moment YYEOF { wtr_add_duration_to_project_on($2, $4, $5.since); }
-       | REMOVE duration FROM PROJECT moment YYEOF { wtr_add_duration_to_project_on(- $2, $4, $5.since); }
-       | report YYEOF {  wtr_report($1); }
-       | GRAPH YYEOF { wtr_graph_auto(NULL); }
-       | GRAPH ON projects YYEOF { wtr_graph_auto($3); }
-       | GRAPH recursive_time_span YYEOF { wtr_graph($2); }
-       | GRAPH recursive_time_span ON projects YYEOF { $2.projects = $4; wtr_graph($2); }
+       | ADD duration TO PROJECT YYEOF { wtr_add_duration_to_project_on(database, $2, $4, today()); }
+       | REMOVE duration FROM PROJECT YYEOF { wtr_add_duration_to_project_on(database, - $2, $4, today()); }
+       | ADD duration TO PROJECT moment YYEOF { wtr_add_duration_to_project_on(database, $2, $4, $5.since); }
+       | REMOVE duration FROM PROJECT moment YYEOF { wtr_add_duration_to_project_on(database, - $2, $4, $5.since); }
+       | report YYEOF {  wtr_report(database, $1); }
+       | GRAPH YYEOF { wtr_graph_auto(database, NULL); }
+       | GRAPH ON projects YYEOF { wtr_graph_auto(database, $3); }
+       | GRAPH recursive_time_span YYEOF { wtr_graph(database, $2); }
+       | GRAPH recursive_time_span ON projects YYEOF { $2.projects = $4; wtr_graph(database, $2); }
        ;
 
 report: report report_part { $$ = combine_report_parts($1, $2); }
@@ -168,8 +170,8 @@ time_unit: DAY { $$ = 0; }
 	 | YEAR { $$ = 3; }
 	 ;
 
-projects: projects PROJECT { project_list_add($1, $2); $$ = $1; }
-	| PROJECT { $$ = project_list_new($1); }
+projects: projects PROJECT { project_list_add(database, $1, $2); $$ = $1; }
+	| PROJECT { $$ = project_list_new(database, $1); }
 	;
 
 %%
@@ -206,7 +208,9 @@ combine_report_parts(report_options_t a, report_options_t b)
 
 
 void
-yyerror(const char *msg)
+yyerror(struct database *database, const char *msg)
 {
+    (void) database;
+
     fprintf(stderr, "yyerror: %s\n", msg);
 }
