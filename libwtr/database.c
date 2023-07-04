@@ -3,6 +3,7 @@
 #include <sqlite3.h>
 
 #include <stdio.h>
+#include <unistd.h>
 
 #include "database.h"
 
@@ -12,13 +13,68 @@ struct database {
 
 static void	 database_migrate(struct database *database);
 
+char _hostname[BUFSIZ];
+char *
+short_hostname(void)
+{
+	if (! *_hostname) {
+		if (gethostname(_hostname, BUFSIZ) < 0) {
+			err(EXIT_FAILURE, "gethostname");
+			/* NOTREACHED */
+		}
+
+		for (char *c = _hostname; *c; c++) {
+			if (*c == '.')
+				*c = '\0';
+		}
+	}
+
+	return _hostname;
+}
+
+int _host_id;
+
+int
+host_id(struct database *database)
+{
+	if (!_host_id) {
+		_host_id = database_host_find_or_create_by_name(database, short_hostname());
+	}
+
+	return _host_id;
+}
+
+void
+insert_current_host(struct database *database)
+{
+	char *sql = NULL;
+	if (asprintf(&sql, "INSERT INTO hosts (name) VALUES ('%s')", short_hostname()) < 0) {
+		err(EXIT_FAILURE, "asprintf");
+		/* NOTREACHED */
+	}
+	char *errmsg = NULL;
+	if (sqlite3_exec(database->db, sql, NULL, 0, &errmsg) != SQLITE_OK) {
+		errx(EXIT_FAILURE, "%s", errmsg);
+		/* NOTREACHED */
+	}
+	free(sql);
+}
+
 struct migration {
 	int applied;
 	char *name;
 	char *sql;
+	void (*callback)(struct database *database);
 } migrations[] = {
-	{ 0, "202305011057", "CREATE TABLE projects (id INTEGER PRIMARY KEY AUTOINCREMENT, name VARCHAR(255))" },
-	{ 0, "202305011058", "CREATE TABLE activity (project_id INTEGER, date INTEGER, duration INTEGER, PRIMARY KEY (project_id, date))" },
+	{ 0, "202305011057", "CREATE TABLE projects (id INTEGER PRIMARY KEY AUTOINCREMENT, name VARCHAR(255))", NULL },
+	{ 0, "202305011058", "CREATE TABLE activity (project_id INTEGER, date INTEGER, duration INTEGER, PRIMARY KEY (project_id, date))", NULL },
+	{ 0, "202307031327", "CREATE TABLE hosts (id INTEGER PRIMARY KEY AUTOINCREMENT, name VARCHAR(255) NOT NULL)", NULL },
+	{ 0, "202307031328", NULL, insert_current_host },
+	{ 0, "202307031335", "CREATE TABLE new_activity (project_id INTEGER NOT NULL REFERENCES projects(id), date INTEGER NOT NULL, duration INTEGER NOT NULL, host_id INTEGER NOT NULL REFERENCES hosts(id), PRIMARY KEY (project_id, host_id, date))", NULL },
+	{ 0, "202307031336", "INSERT INTO new_activity SELECT *, 1 FROM activity", NULL },
+	{ 0, "202307031337", "DROP TABLE activity", NULL },
+	{ 0, "202307031338", "ALTER TABLE new_activity RENAME TO activity", NULL },
+
 };
 
 struct database *
@@ -103,9 +159,14 @@ database_migrate(struct database *database)
 				errx(EXIT_FAILURE, "%s", errmsg);
 				/* NOTREACHED */
 			}
+			if (migrations[i].sql) {
 			if (sqlite3_exec(database->db, migrations[i].sql, NULL, 0, &errmsg) != SQLITE_OK) {
 				errx(EXIT_FAILURE, "%s", errmsg);
 				/* NOTREACHED */
+			}
+			}
+			if (migrations[i].callback) {
+				migrations[i].callback(database);
 			}
 			char *sql = NULL;
 			if (asprintf(&sql, "INSERT INTO information_schema (migration) VALUES ('%s')", migrations[i].name) < 0) {
@@ -135,6 +196,52 @@ read_single_integer(void *result, int argc, char **argv, char **column_name)
 		sscanf(argv[0], "%d", (int *) result);
 	}
 	return 0;
+}
+
+static int
+database_host_find_by_name(struct database *database, const char *host)
+{
+	int id = -1;
+	char *sql = NULL;
+	char *errmsg;
+
+	if (asprintf(&sql, "SELECT id FROM hosts WHERE name = '%s'", host) < 0) {
+		err(EXIT_FAILURE, "asprintf");
+		/* NOTREACHED */
+	}
+	if (sqlite3_exec(database->db, sql, read_single_integer, &id, &errmsg) != SQLITE_OK) {
+		errx(EXIT_FAILURE, "%s", errmsg);
+		/* NOTREACHED */
+	}
+	free(sql);
+
+	return id;
+}
+
+int
+database_host_find_or_create_by_name(struct database *database, const char *host)
+{
+	int id = -1;
+	char *sql = NULL;
+
+	id = database_host_find_by_name(database, host);
+	char *errmsg;
+
+	if (id < 0) {
+		if (asprintf(&sql, "INSERT INTO hosts (name) VALUES ('%s')", host) < 0) {
+			err(EXIT_FAILURE, "asprintf");
+			/* NOTREACHED */
+		}
+		if (sqlite3_exec(database->db, sql, NULL, NULL, &errmsg) != SQLITE_OK) {
+			errx(EXIT_FAILURE, "%s", errmsg);
+			/* NOTREACHED */
+		}
+		free(sql);
+
+		id = database_host_find_by_name(database, host);
+	}
+
+	return id;
 }
 
 int
@@ -189,7 +296,7 @@ database_project_add_duration(struct database *database, int project_id, time_t 
 	char *sql;
 	char *errmsg;
 
-	if (asprintf(&sql, "INSERT INTO activity (project_id, date, duration) VALUES (%d, %ld, %d) ON CONFLICT (project_id, date) DO UPDATE SET duration = duration + %d", project_id, date, duration, duration) < 0) {
+	if (asprintf(&sql, "INSERT INTO activity (project_id, host_id, date, duration) VALUES (%d, %d, %ld, %d) ON CONFLICT (project_id, host_id, date) DO UPDATE SET duration = duration + %d", project_id, host_id(database), date, duration, duration) < 0) {
 		err(EXIT_FAILURE, "asprintf");
 		/* NOTREACHED */
 	}

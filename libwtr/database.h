@@ -8,6 +8,7 @@ struct database;
 struct database	*database_open(void);
 void		 database_close(struct database *db);
 
+int		 database_host_find_or_create_by_name(struct database *db, const char *project);
 int		 database_project_find_by_name(struct database *db, const char *project);
 int		 database_project_find_or_create_by_name(struct database *db, const char *project);
 void		 database_project_add_duration(struct database *db, int project_id, time_t date, int duration);
