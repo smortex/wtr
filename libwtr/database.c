@@ -198,7 +198,7 @@ read_single_integer(void *result, int argc, char **argv, char **column_name)
 	return 0;
 }
 
-static int
+int
 database_host_find_by_name(struct database *database, const char *host)
 {
 	int id = -1;
@@ -308,12 +308,12 @@ database_project_add_duration(struct database *database, int project_id, time_t 
 }
 
 int
-database_get_duration(struct database *database, time_t since, time_t until, const char *and_project_in)
+database_get_duration(struct database *database, time_t since, time_t until, const char *sql_filter)
 {
 	int duration = 0;
 	char *sql = NULL;
 	char *errmsg;
-	if (asprintf(&sql, "SELECT SUM(duration) FROM activity WHERE date >= %ld AND date < %ld%s", since, until, and_project_in) < 0) {
+	if (asprintf(&sql, "SELECT SUM(duration) FROM activity WHERE date >= %ld AND date < %ld%s", since, until, sql_filter) < 0) {
 		err(EXIT_FAILURE, "asprintf");
 		/* NOTREACHED */
 	}
@@ -327,7 +327,7 @@ database_get_duration(struct database *database, time_t since, time_t until, con
 }
 
 int
-database_project_get_duration(struct database *database, int project_id, time_t since, time_t until)
+database_project_get_duration(struct database *database, int project_id, time_t since, time_t until, char *sql_filter)
 {
 	int duration = 0;
 	char *sql = NULL;
@@ -346,7 +346,7 @@ database_project_get_duration(struct database *database, int project_id, time_t 
 			/* NOTREACHED */
 		}
 	}
-	if (asprintf(&sql, "SELECT SUM(duration) FROM activity WHERE project_id = %d%s%s", project_id, since_sql, until_sql) < 0) {
+	if (asprintf(&sql, "SELECT SUM(duration) FROM activity WHERE project_id = %d%s%s%s", project_id, since_sql, until_sql, sql_filter) < 0) {
 		err(EXIT_FAILURE, "asprintf");
 		/* NOTREACHED */
 	}

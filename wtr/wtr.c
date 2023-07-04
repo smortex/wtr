@@ -208,6 +208,18 @@ wtr_report(struct database *database, report_options_t options)
 	const char *p = format_string;
 	mbsrtowcs(wformat_string, &p, BUFSIZ, NULL);
 
+	GString *hosts_filter = g_string_new("");
+	if (options.hosts) {
+		g_string_append(hosts_filter, " AND host_id IN (");
+		id_list_t *item = options.hosts;
+
+		for (item = options.hosts; item; item = item->next) {
+			g_string_append_printf(hosts_filter, "%d", item->id);
+			if (item->next)
+				g_string_append(hosts_filter, ", ");
+		}
+		g_string_append(hosts_filter, ")");
+	}
 
 	while (since < until) {
 		time_t stop = until;
@@ -238,7 +250,7 @@ wtr_report(struct database *database, report_options_t options)
 			int project_duration;
 			int currently_active = projects[i].active && since <= now && now < stop;
 
-			project_duration = database_project_get_duration(database, projects[i].id, since, stop);
+			project_duration = database_project_get_duration(database, projects[i].id, since, stop, hosts_filter->str);
 
 			if (project_duration == 0 && !currently_active)
 				continue;
@@ -286,19 +298,29 @@ wtr_graph(struct database *database, report_options_t options)
 
 	time_t tomorrow = add_day(today(), 1);
 
-	GString *and_project_in;
+	GString *sql_filter = g_string_new("");
 	if (options.projects) {
-		and_project_in = g_string_new(" AND project_id IN (");
+		g_string_append(sql_filter, " AND project_id IN (");
 		id_list_t *item = options.projects;
 
 		for (item = options.projects; item; item = item->next) {
-			g_string_append_printf(and_project_in, "%d", item->id);
+			g_string_append_printf(sql_filter, "%d", item->id);
 			if (item->next)
-				g_string_append(and_project_in, ", ");
+				g_string_append(sql_filter, ", ");
 		}
-		g_string_append(and_project_in, ")");
-	} else {
-		and_project_in = g_string_new("");
+		g_string_append(sql_filter, ")");
+	}
+
+	if (options.hosts) {
+		g_string_append(sql_filter, " AND host_id IN (");
+		id_list_t *item = options.hosts;
+
+		for (item = options.hosts; item; item = item->next) {
+			g_string_append_printf(sql_filter, "%d", item->id);
+			if (item->next)
+				g_string_append(sql_filter, ", ");
+		}
+		g_string_append(sql_filter, ")");
 	}
 
 	if (!until)
@@ -349,7 +371,7 @@ wtr_graph(struct database *database, report_options_t options)
 			if (t < options.since || t >= until) {
 				durations[week * 7 + day_of_week] = 0;
 			} else {
-				int duration = database_get_duration(database, t, add_day(t, 1), and_project_in->str);
+				int duration = database_get_duration(database, t, add_day(t, 1), sql_filter->str);
 				durations[week * 7 + day_of_week] = duration;
 				if (duration > max)
 					max = duration;
@@ -435,7 +457,7 @@ wtr_graph(struct database *database, report_options_t options)
 	}
 	wprintf(L"\n");
 
-	g_string_free(and_project_in, TRUE);
+	g_string_free(sql_filter, TRUE);
 	free(durations);
 }
 
@@ -456,7 +478,7 @@ terminal_width(void)
 }
 
 void
-wtr_graph_auto(struct database *database, id_list_t *projects)
+wtr_graph_auto(struct database *database)
 {
 	int weeks = (terminal_width() - 4) / 4 - 1;
 	/*                              |    |   `--- current week
@@ -469,7 +491,8 @@ wtr_graph_auto(struct database *database, id_list_t *projects)
 		.until = add_day(today(), 1),
 		.next = NULL,
 		.rounding = 0,
-		.projects = projects,
+		.projects = NULL,
+		.hosts = NULL,
 	};
 
 	wtr_graph(database, auto_options);

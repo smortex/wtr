@@ -36,6 +36,6 @@ void		 wtr_edit(void);
 void		 wtr_list(void);
 void		 wtr_report(struct database *database, report_options_t options);
 void		 wtr_graph(struct database *database, report_options_t options);
-void		 wtr_graph_auto(struct database *database, id_list_t *projects);
+void		 wtr_graph_auto(struct database *database);
 
 #endif
