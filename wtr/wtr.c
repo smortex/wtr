@@ -273,7 +273,7 @@ wtr_report(struct database *database, report_options_t options)
 			wprintf(L"\n");
 	}
 
-	project_list_free(options.projects);
+	id_list_free(options.projects);
 	free(wformat_string);
 	free(format_string);
 }

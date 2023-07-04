@@ -26,9 +26,9 @@ typedef struct {
     id_list_t *hosts;
 } report_options_t;
 
-id_list_t	*project_list_new(struct database *database, const char *name);
-id_list_t	*project_list_add(struct database *database, id_list_t *head, const char *name);
-void		 project_list_free(id_list_t *head);
+id_list_t	*id_list_new(struct database *database, const char *name);
+id_list_t	*id_list_add(struct database *database, id_list_t *head, const char *name);
+void		 id_list_free(id_list_t *head);
 
 void		 wtr_active(void);
 void		 wtr_add_duration_to_project_on(struct database *database, int duration, const char *project, time_t date);

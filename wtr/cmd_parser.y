@@ -24,7 +24,7 @@ struct {
 report_options_t combine_report_parts(report_options_t a, report_options_t b);
 
 id_list_t *
-project_list_new(struct database *database, const char *name)
+id_list_new(struct database *database, const char *name)
 {
     id_list_t *head;
     if (!(head = malloc(sizeof(*head))))
@@ -40,7 +40,7 @@ project_list_new(struct database *database, const char *name)
 }
 
 id_list_t *
-project_list_add(struct database *database, id_list_t *head, const char *name)
+id_list_add(struct database *database, id_list_t *head, const char *name)
 {
     id_list_t *tail = head;
 
@@ -61,7 +61,7 @@ project_list_add(struct database *database, id_list_t *head, const char *name)
 }
 
 void
-project_list_free(id_list_t *head)
+id_list_free(id_list_t *head)
 {
     id_list_t *next;
     while (head) {
@@ -170,8 +170,8 @@ time_unit: DAY { $$ = 0; }
 	 | YEAR { $$ = 3; }
 	 ;
 
-projects: projects IDENTIFIER { project_list_add(database, $1, $2); $$ = $1; }
-	| IDENTIFIER { $$ = project_list_new(database, $1); }
+projects: projects IDENTIFIER { id_list_add(database, $1, $2); $$ = $1; }
+	| IDENTIFIER { $$ = id_list_new(database, $1); }
 	;
 
 %%
