@@ -125,7 +125,7 @@ command: ACTIVE YYEOF { wtr_active(); }
        | ADD duration TO IDENTIFIER moment YYEOF { wtr_add_duration_to_project_on(database, $2, $4, $5.since); }
        | REMOVE duration FROM IDENTIFIER moment YYEOF { wtr_add_duration_to_project_on(database, - $2, $4, $5.since); }
        | report YYEOF {  wtr_report(database, $1); }
-       | GRAPH YYEOF { wtr_graph_auto(database); }
+       | GRAPH YYEOF { wtr_graph(database, empty_options); }
        | GRAPH graph_options YYEOF { wtr_graph(database, $2); }
        ;
 

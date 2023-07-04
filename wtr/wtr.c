@@ -290,10 +290,37 @@ wtr_report(struct database *database, report_options_t options)
 	free(format_string);
 }
 
+int
+terminal_width(void)
+{
+#if defined(__linux__)
+	struct winsize ws;
+	ioctl(0, TIOCGWINSZ, &ws);
+	return ws.ws_col;
+#elif defined(__FreeBSD__)
+	struct winsize ws;
+	tcgetwinsize(0, &ws);
+	return ws.ws_col;
+#else
+	return 80;
+#endif
+}
+
 void
 wtr_graph(struct database *database, report_options_t options)
 {
-	time_t since = beginning_of_week(options.since);
+	time_t since;
+	if (options.since) {
+		since = beginning_of_week(options.since);
+	} else {
+		int weeks = (terminal_width() - 4) / 4 - 1;
+		/*                              |    |   `--- current week
+		 *                              |    `------- width of a day
+		 *                              `------------ length of header
+		 */
+
+		since = beginning_of_week(add_week(today(), -weeks));
+	}
 	time_t until = options.until;
 
 	time_t tomorrow = add_day(today(), 1);
@@ -459,41 +486,4 @@ wtr_graph(struct database *database, report_options_t options)
 
 	g_string_free(sql_filter, TRUE);
 	free(durations);
-}
-
-int
-terminal_width(void)
-{
-#if defined(__linux__)
-	struct winsize ws;
-	ioctl(0, TIOCGWINSZ, &ws);
-	return ws.ws_col;
-#elif defined(__FreeBSD__)
-	struct winsize ws;
-	tcgetwinsize(0, &ws);
-	return ws.ws_col;
-#else
-	return 80;
-#endif
-}
-
-void
-wtr_graph_auto(struct database *database)
-{
-	int weeks = (terminal_width() - 4) / 4 - 1;
-	/*                              |    |   `--- current week
-	 *                              |    `------- width of a day
-	 *                              `------------ length of header
-	 */
-
-	report_options_t auto_options = {
-		.since = beginning_of_week(add_week(today(), -weeks)),
-		.until = add_day(today(), 1),
-		.next = NULL,
-		.rounding = 0,
-		.projects = NULL,
-		.hosts = NULL,
-	};
-
-	wtr_graph(database, auto_options);
 }
