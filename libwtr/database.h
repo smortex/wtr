@@ -5,7 +5,8 @@
 
 struct database;
 
-struct database	*database_open(void);
+char		*database_path(void);
+struct database	*database_open(char *filename);
 void		 database_close(struct database *db);
 
 int		 database_host_find_by_name(struct database *db, const char *project);

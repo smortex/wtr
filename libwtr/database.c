@@ -77,8 +77,8 @@ struct migration {
 
 };
 
-struct database *
-database_open(void)
+gchar *
+database_path(void)
 {
 	gchar *database_dir_path = g_build_path(G_DIR_SEPARATOR_S, g_get_user_data_dir(), "wtr", NULL);
 	if (g_mkdir_with_parents(database_dir_path, 0700) < 0) {
@@ -86,14 +86,23 @@ database_open(void)
 		return NULL;
 	}
 
+	gchar *database_file_path = g_build_path(G_DIR_SEPARATOR_S, database_dir_path, "database.sqlite", NULL);
+
+	free(database_dir_path);
+
+	return database_file_path;
+}
+
+struct database *
+database_open(char *filename)
+{
 	struct database *res;
 	if (!(res = malloc(sizeof(*res)))) {
 	    warn("Cannot allocate memory");
 	    return NULL;
 	}
 
-	gchar *database_file_path = g_build_path(G_DIR_SEPARATOR_S, database_dir_path, "database.sqlite", NULL);
-	if (sqlite3_open(database_file_path, &res->db) != SQLITE_OK) {
+	if (sqlite3_open(filename, &res->db) != SQLITE_OK) {
 		warn("Cannot open database");
 		sqlite3_close(res->db);
 		free(res);
@@ -106,9 +115,6 @@ database_open(void)
 		free(res);
 		return NULL;
 	}
-
-	free(database_file_path);
-	free(database_dir_path);
 
 	database_migrate(res);
 

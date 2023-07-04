@@ -84,9 +84,11 @@ int
 main(int argc, char *argv[])
 {
 	struct database *database;
-	if (!(database = database_open())) {
+	char *database_filename = database_path();
+	if (!(database = database_open(database_filename))) {
 		exit(1);
 	}
+	free(database_filename);
 
 	if (config_load(database) < 0) {
 		exit(1);
