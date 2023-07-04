@@ -24,13 +24,13 @@ struct {
 report_options_t combine_report_parts(report_options_t a, report_options_t b);
 
 id_list_t *
-id_list_new(struct database *database, const char *name)
+id_list_new(struct database *database, int (*find_callback)(struct database *database, const char *name), const char *name)
 {
     id_list_t *head;
     if (!(head = malloc(sizeof(*head))))
 	return head;
 
-    head->id = database_project_find_by_name(database, name);
+    head->id = find_callback(database, name);
     head->next = NULL;
 
     if (head->id < 0)
@@ -40,7 +40,7 @@ id_list_new(struct database *database, const char *name)
 }
 
 id_list_t *
-id_list_add(struct database *database, id_list_t *head, const char *name)
+id_list_add(struct database *database, id_list_t *head, int (*find_callback)(struct database *database, const char *name), const char *name)
 {
     id_list_t *tail = head;
 
@@ -51,7 +51,7 @@ id_list_add(struct database *database, id_list_t *head, const char *name)
 	return NULL;
 
     tail = tail->next;
-    tail->id = database_project_find_by_name(database, name);
+    tail->id = find_callback(database, name);
     tail->next = NULL;
 
     if (tail->id < 0)
@@ -170,8 +170,8 @@ time_unit: DAY { $$ = 0; }
 	 | YEAR { $$ = 3; }
 	 ;
 
-projects: projects IDENTIFIER { id_list_add(database, $1, $2); $$ = $1; }
-	| IDENTIFIER { $$ = id_list_new(database, $1); }
+projects: projects IDENTIFIER { id_list_add(database, $1, database_project_find_by_name, $2); $$ = $1; }
+	| IDENTIFIER { $$ = id_list_new(database, database_project_find_by_name, $1); }
 	;
 
 %%
