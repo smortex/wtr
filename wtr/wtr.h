@@ -37,5 +37,6 @@ void		 wtr_list(void);
 void		 wtr_report(struct database *database, report_options_t options);
 void		 wtr_graph(struct database *database, report_options_t options);
 void		 wtr_graph_auto(struct database *database);
+void		 wtr_merge(struct database *database, char *filename);
 
 #endif

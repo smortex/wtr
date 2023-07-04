@@ -369,6 +369,129 @@ database_project_get_duration(struct database *database, int project_id, time_t 
 	return duration;
 }
 
+struct import {
+	struct database *target;
+	struct database *import;
+	int target_host_id;
+	int target_project_id;
+	int import_project_id;
+};
+
+static int
+find_project_id(void *result, int argc, char **argv, char **column_name)
+{
+	struct import *si = result;
+
+	(void) argc;
+	(void) column_name;
+
+	si->target_project_id = database_project_find_or_create_by_name(si->target, argv[0]);
+
+	return 0;
+}
+
+static int
+merge_host_activity(void *result, int argc, char **argv, char **column_name)
+{
+	struct import *si = result;
+	char *sql;
+
+	(void) argc;
+	(void) column_name;
+
+	char *errmsg;
+	if (atoi(argv[0]) != si->import_project_id) {
+		si->import_project_id = strtol(argv[0], NULL, 10);
+
+		char *sql;
+		if (asprintf(&sql, "SELECT name FROM projects WHERE id = %d", si->import_project_id) < 0) {
+			err(EXIT_FAILURE, "asprintf");
+			/* NOTREACHED */
+		}
+
+		if (sqlite3_exec(si->import->db, sql, find_project_id, si, &errmsg) != SQLITE_OK) {
+			errx(EXIT_FAILURE, "%s", errmsg);
+			/* NOTREACHED */
+		}
+
+		free(sql);
+	}
+
+	if (asprintf(&sql, "INSERT INTO activity (project_id, host_id, date, duration) VALUES (%d, %d, %s, %s)", si->target_project_id, si->target_host_id, argv[1], argv[2]) < 0) {
+		err(EXIT_FAILURE, "asprintf");
+		/* NOTREACHED */
+	}
+
+	if (sqlite3_exec(si->target->db, sql, NULL, NULL, &errmsg) != SQLITE_OK) {
+		errx(EXIT_FAILURE, "%s", errmsg);
+		/* NOTREACHED */
+	}
+
+	free(sql);
+
+	return 0;
+}
+
+static int
+merge_host(void *result, int argc, char **argv, char **column_name)
+{
+	(void) argc;
+	(void) column_name;
+
+	struct import *si = result;
+	// Skip self
+	if (strcmp(argv[1], short_hostname()) == 0) {
+		return 0;
+	}
+
+	si->target_host_id = database_host_find_or_create_by_name(si->target, argv[1]);
+	si->target_project_id = -1;
+	si->import_project_id = -1;
+
+	char *sql;
+	if (asprintf(&sql, "DELETE FROM activity WHERE host_id = %d", si->target_host_id) < 0) {
+		err(EXIT_FAILURE, "asprintf");
+		/* NOTREACHED */
+	}
+
+	char *errmsg;
+	if (sqlite3_exec(si->target->db, sql, NULL, NULL, &errmsg) != SQLITE_OK) {
+		errx(EXIT_FAILURE, "%s", errmsg);
+		/* NOTREACHED */
+	}
+
+	free(sql);
+
+	if (asprintf(&sql, "SELECT project_id, date, duration FROM activity WHERE host_id = %s ORDER BY project_id", argv[0]) < 0) {
+		err(EXIT_FAILURE, "asprintf");
+		/* NOTREACHED */
+	}
+
+	if (sqlite3_exec(si->import->db, sql, merge_host_activity, si, &errmsg) != SQLITE_OK) {
+		errx(EXIT_FAILURE, "%s", errmsg);
+		/* NOTREACHED */
+	}
+
+	free(sql);
+
+	return 0;
+}
+
+void
+database_merge(struct database *database, struct database *import)
+{
+	struct import si = {
+		.target = database,
+		.import = import,
+	};
+
+	char *errmsg;
+	if (sqlite3_exec(import->db, "SELECT id, name FROM hosts", merge_host, &si, &errmsg) != SQLITE_OK) {
+		errx(EXIT_FAILURE, "%s", errmsg);
+		/* NOTREACHED */
+	}
+}
+
 void
 database_close(struct database *database)
 {

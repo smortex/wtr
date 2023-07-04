@@ -9,6 +9,7 @@ char		*database_path(void);
 struct database	*database_open(char *filename);
 void		 database_close(struct database *db);
 
+void		 database_merge(struct database *db, struct database *import);
 int		 database_host_find_by_name(struct database *db, const char *project);
 int		 database_host_find_or_create_by_name(struct database *db, const char *project);
 int		 database_project_find_by_name(struct database *db, const char *project);

@@ -490,3 +490,18 @@ wtr_graph(struct database *database, report_options_t options)
 	g_string_free(sql_filter, TRUE);
 	free(durations);
 }
+
+void
+wtr_merge(struct database *database, char *filename)
+{
+	(void) database;
+
+	struct database *import = database_open(filename);
+	if (!import) {
+		err(EXIT_FAILURE, "database_open");
+	}
+
+	database_merge(database, import);
+
+	database_close(import);
+}

@@ -105,7 +105,7 @@ report_options_t empty_options;
 %token <integer> INTEGER
 %token ROUNDING
 %token ON HOST
-%token GRAPH
+%token GRAPH MERGE
 
 %type <report_options> moment report_part report graph_options graph_part time_span
 %type <integer> time_unit
@@ -127,6 +127,7 @@ command: ACTIVE YYEOF { wtr_active(); }
        | report YYEOF {  wtr_report(database, $1); }
        | GRAPH YYEOF { wtr_graph(database, empty_options); }
        | GRAPH graph_options YYEOF { wtr_graph(database, $2); }
+       | MERGE IDENTIFIER YYEOF { wtr_merge(database, $2); }
        ;
 
 report: report report_part { $$ = combine_report_parts($1, $2); }
