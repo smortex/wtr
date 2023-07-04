@@ -224,7 +224,7 @@ wtr_report(struct database *database, report_options_t options)
 		for (size_t i = 0; i < nprojects; i++) {
 			if (options.projects) {
 				int found = 0;
-				project_list_t *item = options.projects;
+				id_list_t *item = options.projects;
 
 				for (item = options.projects; item; item = item->next) {
 					if (item->id == projects[i].id) {
@@ -289,7 +289,7 @@ wtr_graph(struct database *database, report_options_t options)
 	GString *and_project_in;
 	if (options.projects) {
 		and_project_in = g_string_new(" AND project_id IN (");
-		project_list_t *item = options.projects;
+		id_list_t *item = options.projects;
 
 		for (item = options.projects; item; item = item->next) {
 			g_string_append_printf(and_project_in, "%d", item->id);
@@ -456,7 +456,7 @@ terminal_width(void)
 }
 
 void
-wtr_graph_auto(struct database *database, project_list_t *projects)
+wtr_graph_auto(struct database *database, id_list_t *projects)
 {
 	int weeks = (terminal_width() - 4) / 4 - 1;
 	/*                              |    |   `--- current week

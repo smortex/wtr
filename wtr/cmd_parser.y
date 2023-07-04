@@ -23,10 +23,10 @@ struct {
 
 report_options_t combine_report_parts(report_options_t a, report_options_t b);
 
-project_list_t *
+id_list_t *
 project_list_new(struct database *database, const char *name)
 {
-    project_list_t *head;
+    id_list_t *head;
     if (!(head = malloc(sizeof(*head))))
 	return head;
 
@@ -39,10 +39,10 @@ project_list_new(struct database *database, const char *name)
     return head;
 }
 
-project_list_t *
-project_list_add(struct database *database, project_list_t *head, const char *name)
+id_list_t *
+project_list_add(struct database *database, id_list_t *head, const char *name)
 {
-    project_list_t *tail = head;
+    id_list_t *tail = head;
 
     while (tail->next)
 	tail = tail->next;
@@ -61,9 +61,9 @@ project_list_add(struct database *database, project_list_t *head, const char *na
 }
 
 void
-project_list_free(project_list_t *head)
+project_list_free(id_list_t *head)
 {
-    project_list_t *next;
+    id_list_t *next;
     while (head) {
 	next = head->next;
 	free(head);
@@ -85,7 +85,7 @@ report_options_t empty_options;
     char *string;
     time_unit_t time_unit;
     report_options_t report_options;
-    project_list_t *projects;
+    id_list_t *projects;
 }
 
 %start command
