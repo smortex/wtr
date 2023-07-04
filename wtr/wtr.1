@@ -28,6 +28,9 @@
 .Nm
 .Cm graph
 .Ar time-span
+.Nm
+.Cm merge
+.Ar filename
 .Sh DESCRIPTION
 The
 .Nm
@@ -59,6 +62,11 @@ List known projects.
 Report time spent on project. See the REPORTS section bellow.
 .It Cd graph
 Show a visual representation of the time spent on projects in a calendar.
+.It Cd merge
+Merge the time spent on projects in the
+.Ar filename
+database. Useful to track your working time on multiple nodes.
+.El
 .Sh REPORTS
 Multiple reports syntax are accepted:
 .Bl -bullet -compact
@@ -126,11 +134,14 @@ One can also round reported times to the next (upper) invoiced fraction:
 .Cm rounding
 .Ar duration
 .El
-Last, reports can be filtered to only show one or some porjects:
+Last, reports can be filtered to only show one or some projects or hosts:
 .Bl -bullet -compact
 .It
 .Cm on
 .Ar project ...
+.It
+.Cm on host
+.Ar host ...
 .El
 .Sh DURATIONS
 Multiple duration formats are supported:

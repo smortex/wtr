@@ -23,26 +23,26 @@ struct {
 
 report_options_t combine_report_parts(report_options_t a, report_options_t b);
 
-project_list_t *
-project_list_new(struct database *database, const char *name)
+id_list_t *
+id_list_new(struct database *database, char *what, int (*find_callback)(struct database *database, const char *name), const char *name)
 {
-    project_list_t *head;
+    id_list_t *head;
     if (!(head = malloc(sizeof(*head))))
 	return head;
 
-    head->id = database_project_find_by_name(database, name);
+    head->id = find_callback(database, name);
     head->next = NULL;
 
     if (head->id < 0)
-	errx(EXIT_FAILURE, "unknown project: %s", name);
+	errx(EXIT_FAILURE, "unknown %s: %s", what, name);
 
     return head;
 }
 
-project_list_t *
-project_list_add(struct database *database, project_list_t *head, const char *name)
+id_list_t *
+id_list_add(struct database *database, id_list_t *head, char *what, int (*find_callback)(struct database *database, const char *name), const char *name)
 {
-    project_list_t *tail = head;
+    id_list_t *tail = head;
 
     while (tail->next)
 	tail = tail->next;
@@ -51,19 +51,19 @@ project_list_add(struct database *database, project_list_t *head, const char *na
 	return NULL;
 
     tail = tail->next;
-    tail->id = database_project_find_by_name(database, name);
+    tail->id = find_callback(database, name);
     tail->next = NULL;
 
     if (tail->id < 0)
-	errx(EXIT_FAILURE, "unknown project: %s", name);
+	errx(EXIT_FAILURE, "unknown %s: %s", what, name);
 
     return tail;
 }
 
 void
-project_list_free(project_list_t *head)
+id_list_free(id_list_t *head)
 {
-    project_list_t *next;
+    id_list_t *next;
     while (head) {
 	next = head->next;
 	free(head);
@@ -85,14 +85,15 @@ report_options_t empty_options;
     char *string;
     time_unit_t time_unit;
     report_options_t report_options;
-    project_list_t *projects;
+    id_list_t *projects;
+    id_list_t *hosts;
 }
 
 %start command
 
 %token ADD REMOVE
 %token TO FROM
-%token <string> PROJECT
+%token <string> IDENTIFIER
 %token ACTIVE EDIT LIST
 %token TODAY YESTERDAY
 %token SINCE UNTIL
@@ -103,13 +104,14 @@ report_options_t empty_options;
 %token <date> DATE
 %token <integer> INTEGER
 %token ROUNDING
-%token ON
-%token GRAPH
+%token ON HOST
+%token GRAPH MERGE
 
-%type <report_options> moment report_part report recursive_time_span time_span
+%type <report_options> moment report_part report graph_options graph_part time_span
 %type <integer> time_unit
 %type <integer> duration
 %type <projects> projects
+%type <hosts> hosts
 
 %parse-param {struct database *database}
 
@@ -118,15 +120,14 @@ report_options_t empty_options;
 command: ACTIVE YYEOF { wtr_active(); }
        | EDIT YYEOF { wtr_edit(); }
        | LIST YYEOF { wtr_list(); }
-       | ADD duration TO PROJECT YYEOF { wtr_add_duration_to_project_on(database, $2, $4, today()); }
-       | REMOVE duration FROM PROJECT YYEOF { wtr_add_duration_to_project_on(database, - $2, $4, today()); }
-       | ADD duration TO PROJECT moment YYEOF { wtr_add_duration_to_project_on(database, $2, $4, $5.since); }
-       | REMOVE duration FROM PROJECT moment YYEOF { wtr_add_duration_to_project_on(database, - $2, $4, $5.since); }
+       | ADD duration TO IDENTIFIER YYEOF { wtr_add_duration_to_project_on(database, $2, $4, today()); }
+       | REMOVE duration FROM IDENTIFIER YYEOF { wtr_add_duration_to_project_on(database, - $2, $4, today()); }
+       | ADD duration TO IDENTIFIER moment YYEOF { wtr_add_duration_to_project_on(database, $2, $4, $5.since); }
+       | REMOVE duration FROM IDENTIFIER moment YYEOF { wtr_add_duration_to_project_on(database, - $2, $4, $5.since); }
        | report YYEOF {  wtr_report(database, $1); }
-       | GRAPH YYEOF { wtr_graph_auto(database, NULL); }
-       | GRAPH ON projects YYEOF { wtr_graph_auto(database, $3); }
-       | GRAPH recursive_time_span YYEOF { wtr_graph(database, $2); }
-       | GRAPH recursive_time_span ON projects YYEOF { $2.projects = $4; wtr_graph(database, $2); }
+       | GRAPH YYEOF { wtr_graph(database, empty_options); }
+       | GRAPH graph_options YYEOF { wtr_graph(database, $2); }
+       | MERGE IDENTIFIER YYEOF { wtr_merge(database, $2); }
        ;
 
 report: report report_part { $$ = combine_report_parts($1, $2); }
@@ -137,11 +138,17 @@ report_part: time_span { $$ = $1; }
 	   | BY time_unit { $$ = empty_options; $$.next = time_unit_functions[$2].add; }
 	   | ROUNDING DURATION { $$ = empty_options; $$.rounding = $2; }
 	   | ON projects { $$ = empty_options; $$.projects = $2; }
+	   | ON HOST hosts { $$ = empty_options; $$.hosts = $3; }
 	   ;
 
-recursive_time_span: recursive_time_span time_span { $$ = combine_report_parts($1, $2); }
-		   | time_span { $$ = $1; }
-		   ;
+graph_options: graph_options graph_part { $$ = combine_report_parts($1, $2); }
+	     | graph_part { $$ = $1; }
+	     ;
+
+graph_part: time_span { $$ = $1; }
+	  | ON projects { $$ = empty_options; $$.projects = $2; }
+	  | ON HOST hosts { $$ = empty_options; $$.hosts = $3; }
+	  ;
 
 time_span: moment { $$ = empty_options; $$.since = $1.since; $$.until = $1.until; }
 	 | SINCE DATE { $$ = empty_options; $$.since = $2; }
@@ -170,9 +177,13 @@ time_unit: DAY { $$ = 0; }
 	 | YEAR { $$ = 3; }
 	 ;
 
-projects: projects PROJECT { project_list_add(database, $1, $2); $$ = $1; }
-	| PROJECT { $$ = project_list_new(database, $1); }
+projects: projects IDENTIFIER { id_list_add(database, $1, "project", database_project_find_by_name, $2); $$ = $1; }
+	| IDENTIFIER { $$ = id_list_new(database, "project", database_project_find_by_name, $1); }
 	;
+
+hosts: hosts IDENTIFIER { id_list_add(database, $1, "host", database_host_find_by_name, $2); $$ = $1; }
+     | IDENTIFIER { $$ = id_list_new(database, "host", database_host_find_by_name, $1); }
+     ;
 
 %%
 
@@ -190,6 +201,8 @@ combine_report_parts(report_options_t a, report_options_t b)
         errx(EXIT_FAILURE, "multiple rounding functions");
     if (a.projects && b.projects)
 	errx(EXIT_FAILURE, "multiple project filters");
+    if (a.hosts && b.hosts)
+	errx(EXIT_FAILURE, "multiple host filters");
 
     res.since = a.since | b.since;
     res.until = a.until | b.until;
@@ -202,6 +215,10 @@ combine_report_parts(report_options_t a, report_options_t b)
 	res.projects = a.projects;
     else
 	res.projects = b.projects;
+    if (a.hosts)
+	res.hosts = a.hosts;
+    else
+	res.hosts = b.hosts;
 
     return res;
 }

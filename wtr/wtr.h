@@ -15,19 +15,20 @@ typedef struct {
 typedef struct project_list {
     int id;
     struct project_list *next;
-} project_list_t;
+} id_list_t;
 
 typedef struct {
     time_t since;
     time_t until;
     time_t (*next)(time_t, int);
     int rounding;
-    project_list_t *projects;
+    id_list_t *projects;
+    id_list_t *hosts;
 } report_options_t;
 
-project_list_t	*project_list_new(struct database *database, const char *name);
-project_list_t	*project_list_add(struct database *database, project_list_t *head, const char *name);
-void		 project_list_free(project_list_t *head);
+id_list_t	*id_list_new(struct database *database, char *what, int (*find_callback)(struct database *database, const char *name), const char *name);
+id_list_t	*id_list_add(struct database *database, id_list_t *head, char *what, int (*find_callback)(struct database *database, const char *name), const char *name);
+void		 id_list_free(id_list_t *head);
 
 void		 wtr_active(void);
 void		 wtr_add_duration_to_project_on(struct database *database, int duration, const char *project, time_t date);
@@ -35,6 +36,7 @@ void		 wtr_edit(void);
 void		 wtr_list(void);
 void		 wtr_report(struct database *database, report_options_t options);
 void		 wtr_graph(struct database *database, report_options_t options);
-void		 wtr_graph_auto(struct database *database, project_list_t *projects);
+void		 wtr_graph_auto(struct database *database);
+void		 wtr_merge(struct database *database, char *filename);
 
 #endif
