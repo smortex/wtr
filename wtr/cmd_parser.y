@@ -92,7 +92,7 @@ report_options_t empty_options;
 
 %token ADD REMOVE
 %token TO FROM
-%token <string> PROJECT
+%token <string> IDENTIFIER
 %token ACTIVE EDIT LIST
 %token TODAY YESTERDAY
 %token SINCE UNTIL
@@ -118,10 +118,10 @@ report_options_t empty_options;
 command: ACTIVE YYEOF { wtr_active(); }
        | EDIT YYEOF { wtr_edit(); }
        | LIST YYEOF { wtr_list(); }
-       | ADD duration TO PROJECT YYEOF { wtr_add_duration_to_project_on(database, $2, $4, today()); }
-       | REMOVE duration FROM PROJECT YYEOF { wtr_add_duration_to_project_on(database, - $2, $4, today()); }
-       | ADD duration TO PROJECT moment YYEOF { wtr_add_duration_to_project_on(database, $2, $4, $5.since); }
-       | REMOVE duration FROM PROJECT moment YYEOF { wtr_add_duration_to_project_on(database, - $2, $4, $5.since); }
+       | ADD duration TO IDENTIFIER YYEOF { wtr_add_duration_to_project_on(database, $2, $4, today()); }
+       | REMOVE duration FROM IDENTIFIER YYEOF { wtr_add_duration_to_project_on(database, - $2, $4, today()); }
+       | ADD duration TO IDENTIFIER moment YYEOF { wtr_add_duration_to_project_on(database, $2, $4, $5.since); }
+       | REMOVE duration FROM IDENTIFIER moment YYEOF { wtr_add_duration_to_project_on(database, - $2, $4, $5.since); }
        | report YYEOF {  wtr_report(database, $1); }
        | GRAPH YYEOF { wtr_graph_auto(database, NULL); }
        | GRAPH ON projects YYEOF { wtr_graph_auto(database, $3); }
@@ -170,8 +170,8 @@ time_unit: DAY { $$ = 0; }
 	 | YEAR { $$ = 3; }
 	 ;
 
-projects: projects PROJECT { project_list_add(database, $1, $2); $$ = $1; }
-	| PROJECT { $$ = project_list_new(database, $1); }
+projects: projects IDENTIFIER { project_list_add(database, $1, $2); $$ = $1; }
+	| IDENTIFIER { $$ = project_list_new(database, $1); }
 	;
 
 %%

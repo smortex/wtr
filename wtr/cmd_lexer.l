@@ -44,7 +44,7 @@ years?				{ yylval.time_unit = (time_unit_t){0, 0, 0, 1}; return YEAR; }
 
 [0-9]{4}-[0-9]{2}-[0-9]{2}	{ scan_date(yytext,&yylval.date); return DATE; }
 -?[0-9]+			{ yylval.integer = strtol(yytext, NULL, 10); return INTEGER; }
-.+				{ yylval.string = yytext; return PROJECT; }
+.+				{ yylval.string = yytext; return IDENTIFIER; }
 
 %%
 
