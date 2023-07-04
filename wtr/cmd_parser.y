@@ -24,7 +24,7 @@ struct {
 report_options_t combine_report_parts(report_options_t a, report_options_t b);
 
 id_list_t *
-id_list_new(struct database *database, int (*find_callback)(struct database *database, const char *name), const char *name)
+id_list_new(struct database *database, char *what, int (*find_callback)(struct database *database, const char *name), const char *name)
 {
     id_list_t *head;
     if (!(head = malloc(sizeof(*head))))
@@ -34,13 +34,13 @@ id_list_new(struct database *database, int (*find_callback)(struct database *dat
     head->next = NULL;
 
     if (head->id < 0)
-	errx(EXIT_FAILURE, "unknown project: %s", name);
+	errx(EXIT_FAILURE, "unknown %s: %s", what, name);
 
     return head;
 }
 
 id_list_t *
-id_list_add(struct database *database, id_list_t *head, int (*find_callback)(struct database *database, const char *name), const char *name)
+id_list_add(struct database *database, id_list_t *head, char *what, int (*find_callback)(struct database *database, const char *name), const char *name)
 {
     id_list_t *tail = head;
 
@@ -55,7 +55,7 @@ id_list_add(struct database *database, id_list_t *head, int (*find_callback)(str
     tail->next = NULL;
 
     if (tail->id < 0)
-	errx(EXIT_FAILURE, "unknown project: %s", name);
+	errx(EXIT_FAILURE, "unknown %s: %s", what, name);
 
     return tail;
 }
@@ -176,12 +176,12 @@ time_unit: DAY { $$ = 0; }
 	 | YEAR { $$ = 3; }
 	 ;
 
-projects: projects IDENTIFIER { id_list_add(database, $1, database_project_find_by_name, $2); $$ = $1; }
-	| IDENTIFIER { $$ = id_list_new(database, database_project_find_by_name, $1); }
+projects: projects IDENTIFIER { id_list_add(database, $1, "project", database_project_find_by_name, $2); $$ = $1; }
+	| IDENTIFIER { $$ = id_list_new(database, "project", database_project_find_by_name, $1); }
 	;
 
-hosts: hosts IDENTIFIER { id_list_add(database, $1, database_host_find_by_name, $2); $$ = $1; }
-     | IDENTIFIER { $$ = id_list_new(database, database_host_find_by_name, $1); }
+hosts: hosts IDENTIFIER { id_list_add(database, $1, "host", database_host_find_by_name, $2); $$ = $1; }
+     | IDENTIFIER { $$ = id_list_new(database, "host", database_host_find_by_name, $1); }
      ;
 
 %%

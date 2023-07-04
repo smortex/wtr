@@ -26,8 +26,8 @@ typedef struct {
     id_list_t *hosts;
 } report_options_t;
 
-id_list_t	*id_list_new(struct database *database, int (*find_callback)(struct database *database, const char *name), const char *name);
-id_list_t	*id_list_add(struct database *database, id_list_t *head, int (*find_callback)(struct database *database, const char *name), const char *name);
+id_list_t	*id_list_new(struct database *database, char *what, int (*find_callback)(struct database *database, const char *name), const char *name);
+id_list_t	*id_list_add(struct database *database, id_list_t *head, char *what, int (*find_callback)(struct database *database, const char *name), const char *name);
 void		 id_list_free(id_list_t *head);
 
 void		 wtr_active(void);
