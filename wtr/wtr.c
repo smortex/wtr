@@ -176,11 +176,21 @@ wtr_edit(void)
 }
 
 void
-wtr_list(void)
+callback_print_string(char *host)
 {
-	for (size_t i = 0; i < nprojects; i++) {
-		wprintf(L"%s\n", projects[i].name);
-	}
+	wprintf(L"%s\n", host);
+}
+
+void
+wtr_list_hosts(struct database *database)
+{
+	database_list_hosts(database, callback_print_string);
+}
+
+void
+wtr_list_projects(struct database *database)
+{
+	database_list_projects(database, callback_print_string);
 }
 
 void

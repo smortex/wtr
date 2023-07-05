@@ -95,6 +95,7 @@ report_options_t empty_options;
 %token TO FROM
 %token <string> IDENTIFIER
 %token ACTIVE EDIT LIST
+%token HOSTS PROJECTS
 %token TODAY YESTERDAY
 %token SINCE UNTIL
 %token <integer> DURATION
@@ -119,7 +120,8 @@ report_options_t empty_options;
 
 command: ACTIVE YYEOF { wtr_active(); }
        | EDIT YYEOF { wtr_edit(); }
-       | LIST YYEOF { wtr_list(); }
+       | LIST PROJECTS YYEOF { wtr_list_projects(database); }
+       | LIST HOSTS YYEOF { wtr_list_hosts(database); }
        | ADD duration TO IDENTIFIER YYEOF { wtr_add_duration_to_project_on(database, $2, $4, today()); }
        | REMOVE duration FROM IDENTIFIER YYEOF { wtr_add_duration_to_project_on(database, - $2, $4, today()); }
        | ADD duration TO IDENTIFIER moment YYEOF { wtr_add_duration_to_project_on(database, $2, $4, $5.since); }
@@ -138,7 +140,7 @@ report_part: time_span { $$ = $1; }
 	   | BY time_unit { $$ = empty_options; $$.next = time_unit_functions[$2].add; }
 	   | ROUNDING DURATION { $$ = empty_options; $$.rounding = $2; }
 	   | ON projects { $$ = empty_options; $$.projects = $2; }
-	   | ON HOST hosts { $$ = empty_options; $$.hosts = $3; }
+	   | ON host hosts { $$ = empty_options; $$.hosts = $3; }
 	   ;
 
 graph_options: graph_options graph_part { $$ = combine_report_parts($1, $2); }
@@ -147,8 +149,12 @@ graph_options: graph_options graph_part { $$ = combine_report_parts($1, $2); }
 
 graph_part: time_span { $$ = $1; }
 	  | ON projects { $$ = empty_options; $$.projects = $2; }
-	  | ON HOST hosts { $$ = empty_options; $$.hosts = $3; }
+	  | ON host hosts { $$ = empty_options; $$.hosts = $3; }
 	  ;
+
+host: HOSTS
+    | HOST
+    ;
 
 time_span: moment { $$ = empty_options; $$.since = $1.since; $$.until = $1.until; }
 	 | SINCE DATE { $$ = empty_options; $$.since = $2; }
