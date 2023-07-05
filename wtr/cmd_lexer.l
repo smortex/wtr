@@ -31,6 +31,8 @@ by				{ return BY; }
 rounding			{ return ROUNDING; }
 on				{ return ON; }
 host				{ return HOST; }
+hosts				{ return HOSTS; }
+projects			{ return PROJECTS; }
 graph				{ return GRAPH; }
 merge				{ return MERGE; }
 days?				{ yylval.time_unit = (time_unit_t){1, 0, 0, 0}; return DAY; }

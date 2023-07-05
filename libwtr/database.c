@@ -492,6 +492,39 @@ database_merge(struct database *database, struct database *import)
 	}
 }
 
+static int
+callback_single_string(void *result, int argc, char **argv, char **column_name)
+{
+	(void) column_name;
+
+	void (*callback)(char *host) = result;
+
+	if (argc == 1 && argv[0]) {
+		callback(argv[0]);
+	}
+	return 0;
+}
+
+void
+database_list_hosts(struct database *database, void (*callback)(char *host))
+{
+	char *errmsg;
+	if (sqlite3_exec(database->db, "SELECT name FROM hosts ORDER BY NAME", callback_single_string, callback, &errmsg) != SQLITE_OK) {
+		errx(EXIT_FAILURE, "%s", errmsg);
+		/* NOTREACHED */
+	}
+}
+
+void
+database_list_projects(struct database *database, void (*callback)(char *project))
+{
+	char *errmsg;
+	if (sqlite3_exec(database->db, "SELECT name FROM projects ORDER BY NAME", callback_single_string, callback, &errmsg) != SQLITE_OK) {
+		errx(EXIT_FAILURE, "%s", errmsg);
+		/* NOTREACHED */
+	}
+}
+
 void
 database_close(struct database *database)
 {
