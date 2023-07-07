@@ -51,7 +51,8 @@ usage(int exit_code)
 	fprintf(stderr, "  remove <duration> from <project> <when>\n");
 	fprintf(stderr, "  edit                                      Edit wtrd(1) configuration file\n");
 	fprintf(stderr, "  active                                    List currently active projects\n");
-	fprintf(stderr, "  list                                      List known projects\n");
+	fprintf(stderr, "  list hosts                                List known hosts\n");
+	fprintf(stderr, "  list projects                             List known projects\n");
 	fprintf(stderr, "  <report>                                  Report time spent on projects\n");
 	fprintf(stderr, "  graph <time-span>                         Visually represent time spent on\n");
 	fprintf(stderr, "                                            projects\n");
