@@ -1,7 +1,29 @@
+#include <err.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <time.h>
+#include <unistd.h>
 
 #include "utils.h"
+
+char _hostname[BUFSIZ];
+char *
+short_hostname(void)
+{
+	if (! *_hostname) {
+		if (gethostname(_hostname, BUFSIZ) < 0) {
+			err(EXIT_FAILURE, "gethostname");
+			/* NOTREACHED */
+		}
+
+		for (char *c = _hostname; *c; c++) {
+			if (*c == '.')
+				*c = '\0';
+		}
+	}
+
+	return _hostname;
+}
 
 int
 scan_date(const char *str, time_t *date)

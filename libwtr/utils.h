@@ -3,6 +3,7 @@
 
 #include <time.h>
 
+char		*short_hostname(void);
 int		 scan_date(const char *str, time_t *date);
 int		 scan_duration(const char *str, int *duration);
 time_t		 today(void);
