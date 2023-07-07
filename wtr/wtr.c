@@ -259,12 +259,7 @@ wtr_report(struct database *database, report_options_t options)
 	if (!until)
 		until = tomorrow;
 
-	int longest_name = 5;
-	for (size_t i = 0; i < nprojects; i++) {
-		int name_length = strlen(projects[i].name);
-		if (name_length > longest_name)
-			longest_name = name_length;
-	}
+	int longest_name = database_longuest_project_name(database);
 	char *format_string;
 	if (asprintf(&format_string, "    %%-%ds ", longest_name) < 0)
 		err(EXIT_FAILURE, "asprintf");
