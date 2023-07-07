@@ -97,6 +97,14 @@ database_open(char *filename)
 		return NULL;
 	}
 
+	char *errmsg = NULL;
+	if (sqlite3_exec(res->db, "PRAGMA foreign_keys = ON", NULL, NULL, &errmsg) != SQLITE_OK) {
+		warn("Cannot enforce foreign keys constraints: %s", errmsg);
+		sqlite3_close(res->db);
+		free(res);
+		return NULL;
+	}
+
 	database_migrate(res);
 
 	return res;
