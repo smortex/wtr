@@ -105,6 +105,33 @@ main(int argc, char *argv[])
 	free(database_filename);
 
 	if (config_load(database) < 0) {
+		wprintf(L"Do you want to install a sample configuration file and open it with your favorite editor? [yN] ");
+		char buf[BUFSIZ];
+		if (!fgets(buf, sizeof(buf), stdin)) {
+			err(EXIT_FAILURE, "fgets");
+		}
+		if (strncmp(buf, "y", 1) == 0) {
+			FILE *f;
+
+			if (!(f = fopen(config_file_path(), "w"))) {
+				err(EXIT_FAILURE, "fopen");
+			}
+
+			fprintf(f, "# Define one section per project, and set the \"root\" key to the path or its\n"
+				   "# root directory.\n"
+				   "# Lines starting with a '#' are comments.\n"
+				   "#\n"
+				   "# Examples:\n"
+				   "# [Acme Corporation]\n"
+				   "# root = /home/wile/Projects/ACME\n"
+				   "#\n"
+				   "# [Fast and Furry-ous]\n"
+				   "# root = /nfs/movies/E01\n");
+
+			fclose(f);
+			wtr_edit();
+			/* NOTREACHED */
+		}
 		exit(1);
 	}
 
