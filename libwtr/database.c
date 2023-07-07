@@ -342,7 +342,7 @@ database_get_duration_by_project(struct database *database, time_t since, time_t
 
 	char *sql = NULL;
 
-	if (asprintf(&sql, "SELECT projects.name, SUM(activity.duration) FROM projects LEFT JOIN activity on projects.id = project_id WHERE date >= %ld AND date < %ld%s GROUP BY activity.project_id ORDER BY projects.name", since, until, sql_filter) < 0) {
+	if (asprintf(&sql, "SELECT projects.name, SUM(activity.duration) FROM projects LEFT JOIN activity on projects.id = project_id WHERE date >= %ld AND date < %ld%s GROUP BY activity.project_id ORDER BY LOWER(projects.name)", since, until, sql_filter) < 0) {
 		err(EXIT_FAILURE, "asprintf");
 		/* NOTREACHED */
 	}
@@ -511,7 +511,7 @@ void
 database_list_hosts(struct database *database, void (*callback)(char *host))
 {
 	char *errmsg;
-	if (sqlite3_exec(database->db, "SELECT name FROM hosts ORDER BY NAME", callback_single_string, callback, &errmsg) != SQLITE_OK) {
+	if (sqlite3_exec(database->db, "SELECT name FROM hosts ORDER BY LOWER(name)", callback_single_string, callback, &errmsg) != SQLITE_OK) {
 		errx(EXIT_FAILURE, "%s", errmsg);
 		/* NOTREACHED */
 	}
@@ -521,7 +521,7 @@ void
 database_list_projects(struct database *database, void (*callback)(char *project))
 {
 	char *errmsg;
-	if (sqlite3_exec(database->db, "SELECT name FROM projects ORDER BY NAME", callback_single_string, callback, &errmsg) != SQLITE_OK) {
+	if (sqlite3_exec(database->db, "SELECT name FROM projects ORDER BY LOWER(name)", callback_single_string, callback, &errmsg) != SQLITE_OK) {
 		errx(EXIT_FAILURE, "%s", errmsg);
 		/* NOTREACHED */
 	}
