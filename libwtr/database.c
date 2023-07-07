@@ -25,6 +25,17 @@ host_id(struct database *database)
 	return _host_id;
 }
 
+static int
+read_single_integer(void *result, int argc, char **argv, char **column_name)
+{
+	(void) column_name;
+
+	if (argc == 1 && argv[0]) {
+		sscanf(argv[0], "%d", (int *) result);
+	}
+	return 0;
+}
+
 void
 insert_current_host(struct database *database)
 {
@@ -110,6 +121,20 @@ database_open(char *filename)
 	return res;
 }
 
+int
+database_longuest_project_name(struct database *database)
+{
+	int res;
+
+	char *errmsg;
+	if (sqlite3_exec(database->db, "SELECT MAX(LENGTH(name)) FROM projects", read_single_integer, &res, &errmsg) != SQLITE_OK) {
+		errx(EXIT_FAILURE, "%s", errmsg);
+		/* NOTREACHED */
+	}
+
+	return res;
+}
+
 static int
 find_applied_migrations(void *not_used, int argc, char **argv, char **column_name)
 {
@@ -180,17 +205,6 @@ database_migrate(struct database *database)
 		}
 
 	}
-}
-
-static int
-read_single_integer(void *result, int argc, char **argv, char **column_name)
-{
-	(void) column_name;
-
-	if (argc == 1 && argv[0]) {
-		sscanf(argv[0], "%d", (int *) result);
-	}
-	return 0;
 }
 
 int
