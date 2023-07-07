@@ -333,40 +333,39 @@ database_get_duration(struct database *database, time_t since, time_t until, con
 }
 
 int
-database_project_get_duration(struct database *database, int project_id, time_t since, time_t until, char *sql_filter)
+database_get_duration_by_project(struct database *database, time_t since, time_t until, char *sql_filter, void (*callback)(const char *project, int duration, void *data), void *data)
 {
-	int duration = 0;
+	int total_duration = 0;
+
 	char *sql = NULL;
-	char *errmsg;
-	char *empty = "";
-	char *since_sql = empty, *until_sql = empty;
-	if (since) {
-		if (asprintf(&since_sql, " AND date >= %ld", since) < 0) {
-			err(EXIT_FAILURE, "asprintf");
-			/* NOTREACHED */
-		}
-	}
-	if (until) {
-		if (asprintf(&until_sql, " AND date < %ld", until) < 0) {
-			err(EXIT_FAILURE, "asprintf");
-			/* NOTREACHED */
-		}
-	}
-	if (asprintf(&sql, "SELECT SUM(duration) FROM activity WHERE project_id = %d%s%s%s", project_id, since_sql, until_sql, sql_filter) < 0) {
+
+	if (asprintf(&sql, "SELECT projects.name, SUM(activity.duration) FROM projects LEFT JOIN activity on projects.id = project_id WHERE date >= %ld AND date < %ld%s GROUP BY activity.project_id ORDER BY projects.name", since, until, sql_filter) < 0) {
 		err(EXIT_FAILURE, "asprintf");
 		/* NOTREACHED */
 	}
-	if (sqlite3_exec(database->db, sql, read_single_integer, &duration, &errmsg) != SQLITE_OK) {
-		errx(EXIT_FAILURE, "%s", errmsg);
-		/* NOTREACHED */
-	}
-	free(sql);
-	if (since)
-		free(since_sql);
-	if (until)
-		free(until_sql);
 
-	return duration;
+	sqlite3_stmt *stmt;
+	if (sqlite3_prepare_v2(database->db, sql, strlen(sql), &stmt, NULL) != SQLITE_OK) {
+		err(EXIT_FAILURE, "sqlite3_prepare_v2");
+	}
+
+	int res;
+	while ((res = sqlite3_step(stmt)) != SQLITE_DONE) {
+		if (res == SQLITE_ROW) {
+			callback((const char *)sqlite3_column_text(stmt, 0),
+			         sqlite3_column_int(stmt, 1),
+			         data);
+		} else {
+			err(EXIT_FAILURE, "sqlite3_step");
+		}
+		total_duration += sqlite3_column_int(stmt, 1);
+	}
+
+	sqlite3_finalize(stmt);
+
+	free(sql);
+
+	return total_duration;
 }
 
 struct import {

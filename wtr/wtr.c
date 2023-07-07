@@ -193,6 +193,28 @@ wtr_list_projects(struct database *database)
 	database_list_projects(database, callback_print_string);
 }
 
+struct report_project_duration_data {
+	wchar_t *wformat_string;
+	int current;
+};
+
+static void
+report_project_duration(const char *project, int duration, void *user_data)
+{
+	struct report_project_duration_data *data = user_data;
+
+	wprintf(data->wformat_string, project);
+	print_duration(duration);
+	if (data->current) {
+		for (size_t i = 0; i < nprojects; i++) {
+			if (projects[i].active && strcmp((const char *)project, projects[i].name) == 0) {
+				wprintf(L" +");
+			}
+		}
+	}
+	wprintf(L"\n");
+}
+
 void
 wtr_report(struct database *database, report_options_t options)
 {
@@ -203,6 +225,9 @@ wtr_report(struct database *database, report_options_t options)
 	time_t tomorrow = add_day(today(), 1);
 
 	each_user_process_working_directory(process_working_directory);
+
+	if (!since)
+		since = today();
 
 	if (!until)
 		until = tomorrow;
@@ -221,17 +246,29 @@ wtr_report(struct database *database, report_options_t options)
 	const char *p = format_string;
 	mbsrtowcs(wformat_string, &p, BUFSIZ, NULL);
 
-	GString *hosts_filter = g_string_new("");
+	GString *sql_filter = g_string_new("");
+	if (options.projects) {
+		g_string_append(sql_filter, " AND project_id IN (");
+		id_list_t *item = options.projects;
+
+		for (item = options.projects; item; item = item->next) {
+			g_string_append_printf(sql_filter, "%d", item->id);
+			if (item->next)
+				g_string_append(sql_filter, ", ");
+		}
+		g_string_append(sql_filter, ")");
+	}
+
 	if (options.hosts) {
-		g_string_append(hosts_filter, " AND host_id IN (");
+		g_string_append(sql_filter, " AND host_id IN (");
 		id_list_t *item = options.hosts;
 
 		for (item = options.hosts; item; item = item->next) {
-			g_string_append_printf(hosts_filter, "%d", item->id);
+			g_string_append_printf(sql_filter, "%d", item->id);
 			if (item->next)
-				g_string_append(hosts_filter, ", ");
+				g_string_append(sql_filter, ", ");
 		}
-		g_string_append(hosts_filter, ")");
+		g_string_append(sql_filter, ")");
 	}
 
 	while (since < until) {
@@ -245,41 +282,14 @@ wtr_report(struct database *database, report_options_t options)
 		strftime(suntil, BUFSIZ, "%F", localtime(&stop));
 		wprintf(L"wtr since %s until %s\n\n", ssince, suntil);
 
+		int current = since <= now && now < until;
+
+		struct report_project_duration_data data = {
+			.wformat_string = wformat_string,
+			.current = current,
+		};
 		int total_duration = 0;
-		for (size_t i = 0; i < nprojects; i++) {
-			if (options.projects) {
-				int found = 0;
-				id_list_t *item = options.projects;
-
-				for (item = options.projects; item; item = item->next) {
-					if (item->id == projects[i].id) {
-						found = 1;
-						break;
-					}
-				}
-				if (!found)
-					continue;
-			}
-			int project_duration;
-			int currently_active = projects[i].active && since <= now && now < stop;
-
-			project_duration = database_project_get_duration(database, projects[i].id, since, stop, hosts_filter->str);
-
-			if (project_duration == 0 && !currently_active)
-				continue;
-
-			if (options.rounding && project_duration % options.rounding)
-				project_duration = (project_duration / options.rounding + 1) * options.rounding;
-
-			wprintf(wformat_string, projects[i].name);
-			print_duration(project_duration);
-			if (currently_active) {
-				wprintf(L" +");
-			}
-			wprintf(L"\n");
-
-			total_duration += project_duration;
-		}
+		total_duration = database_get_duration_by_project(database, since, stop, sql_filter->str, report_project_duration, &data);
 
 		wprintf(L"    ");
 		for (int i = 0; i < longest_name + 18; i++) {
