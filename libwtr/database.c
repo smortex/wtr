@@ -3,34 +3,15 @@
 #include <sqlite3.h>
 
 #include <stdio.h>
-#include <unistd.h>
 
 #include "database.h"
+#include "utils.h"
 
 struct database {
 	sqlite3 *db;
 };
 
 static void	 database_migrate(struct database *database);
-
-char _hostname[BUFSIZ];
-char *
-short_hostname(void)
-{
-	if (! *_hostname) {
-		if (gethostname(_hostname, BUFSIZ) < 0) {
-			err(EXIT_FAILURE, "gethostname");
-			/* NOTREACHED */
-		}
-
-		for (char *c = _hostname; *c; c++) {
-			if (*c == '.')
-				*c = '\0';
-		}
-	}
-
-	return _hostname;
-}
 
 int _host_id;
 

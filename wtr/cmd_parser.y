@@ -141,6 +141,7 @@ report_part: time_span { $$ = $1; }
 	   | ROUNDING DURATION { $$ = empty_options; $$.rounding = $2; }
 	   | ON projects { $$ = empty_options; $$.projects = $2; }
 	   | ON host hosts { $$ = empty_options; $$.hosts = $3; }
+	   | ON THIS HOST { $$ = empty_options; $$.hosts = id_list_new(database, "host", database_host_find_by_name, short_hostname()); }
 	   ;
 
 graph_options: graph_options graph_part { $$ = combine_report_parts($1, $2); }
@@ -150,6 +151,7 @@ graph_options: graph_options graph_part { $$ = combine_report_parts($1, $2); }
 graph_part: time_span { $$ = $1; }
 	  | ON projects { $$ = empty_options; $$.projects = $2; }
 	  | ON host hosts { $$ = empty_options; $$.hosts = $3; }
+	  | ON THIS HOST { $$ = empty_options; $$.hosts = id_list_new(database, "host", database_host_find_by_name, short_hostname()); }
 	  ;
 
 host: HOSTS
