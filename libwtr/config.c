@@ -37,7 +37,6 @@ config_load(struct database *database)
 	GKeyFile *conf_file = g_key_file_new();
 	if (!g_key_file_load_from_file(conf_file, conf_file_path, G_KEY_FILE_NONE, NULL)) {
 		warn("Could not load configuration from %s", conf_file_path);
-		// TODO: Create a sample configuration with comments to guide the user
 		return -1;
 	}
 
