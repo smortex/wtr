@@ -301,12 +301,12 @@ wtr_report(struct database *database, report_options_t options)
 		if (options.next)
 			stop = MIN(until, options.next(since, 1));
 
-		char ssince[BUFSIZ], suntil[BUFSIZ];
+		char ssince[BUFSIZ], sstop[BUFSIZ];
 		strftime(ssince, BUFSIZ, "%F", localtime(&since));
-		strftime(suntil, BUFSIZ, "%F", localtime(&stop));
-		wprintf(L"wtr since %s until %s\n\n", ssince, suntil);
+		strftime(sstop, BUFSIZ, "%F", localtime(&stop));
+		wprintf(L"wtr since %s until %s\n\n", ssince, sstop);
 
-		int current = since <= now && now < until;
+		int current = since <= now && now < stop;
 
 		struct report_project_duration_data data = {
 			.wformat_string = wformat_string,
