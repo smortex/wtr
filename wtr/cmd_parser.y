@@ -173,6 +173,7 @@ duration: INTEGER
 moment: INTEGER { $$.since = add_day(today(), $1); $$.until = add_day($$.since, 1); }
       | TODAY { $$.since = today(); $$.until = add_day($$.since, 1); }
       | YESTERDAY { $$.since = add_day(today(), -1); $$.until = today(); }
+      | ON DATE { $$.since = $2; $$.until = add_day($2, 1); }
       | THIS time_unit { $$.since = time_unit_functions[$2].beginning_of(today()); $$.until = time_unit_functions[$2].add($$.since, 1); }
       | INTEGER time_unit AGO { $$.since = time_unit_functions[$2].add(today(), -$1); $$.until = time_unit_functions[$2].add($$.since, 1); }
       | LAST time_unit { $$.since = time_unit_functions[$2].add(time_unit_functions[$2].beginning_of(today()), -1); $$.until = time_unit_functions[$2].add($$.since, 1); }
