@@ -78,6 +78,7 @@ usage(int exit_code)
 	fprintf(stderr, "  last month\n");
 	fprintf(stderr, "  <n> months ago\n");
 	fprintf(stderr, "  last <n> months\n");
+	fprintf(stderr, "  on <date>\n");
 	fprintf(stderr, "  since <date>\n");
 	fprintf(stderr, "  until <date>\n");
 	fprintf(stderr, "  rounding <duration>\n");
