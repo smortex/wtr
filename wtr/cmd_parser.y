@@ -18,6 +18,7 @@ struct {
     { beginning_of_day, add_day },
     { beginning_of_week, add_week },
     { beginning_of_month, add_month },
+    { beginning_of_quarter, add_quarter },
     { beginning_of_year, add_year },
 };
 
@@ -99,7 +100,7 @@ report_options_t empty_options;
 %token TODAY YESTERDAY
 %token SINCE UNTIL
 %token <integer> DURATION
-%token <time_unit> DAY WEEK MONTH YEAR
+%token <time_unit> DAY WEEK MONTH QUARTER YEAR
 %token THIS LAST AGO
 %token BY
 %token <date> DATE
@@ -183,7 +184,8 @@ moment: INTEGER { $$.since = add_day(today(), $1); $$.until = add_day($$.since, 
 time_unit: DAY { $$ = 0; }
 	 | WEEK { $$ = 1; }
 	 | MONTH { $$ = 2; }
-	 | YEAR { $$ = 3; }
+	 | QUARTER { $$ = 3; }
+	 | YEAR { $$ = 4; }
 	 ;
 
 projects: projects IDENTIFIER { id_list_add(database, $1, "project", database_project_find_by_name, $2); $$ = $1; }

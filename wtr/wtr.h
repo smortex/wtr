@@ -9,6 +9,7 @@ typedef struct {
     int day;
     int week;
     int month;
+    int quarter;
     int year;
 } time_unit_t;
 
