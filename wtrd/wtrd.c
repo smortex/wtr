@@ -1,4 +1,5 @@
 #include <err.h>
+#include <locale.h>
 
 #include <glib.h>
 #include <glib-unix.h>
@@ -83,6 +84,8 @@ child_watch(GPid pid, gint status, gpointer user_data)
 int
 main(int argc, char *argv[])
 {
+	setlocale(LC_ALL, "");
+
 	struct database *database;
 	char *database_filename = database_path();
 	if (!(database = database_open(database_filename))) {
