@@ -419,7 +419,7 @@ merge_host_activity(void *result, int argc, char **argv, char **column_name)
 		free(sql);
 	}
 
-	if (asprintf(&sql, "INSERT INTO activity (project_id, host_id, date, duration) VALUES (%d, %d, %s, %s)", si->target_project_id, si->target_host_id, argv[1], argv[2]) < 0) {
+	if (asprintf(&sql, "INSERT INTO activity (project_id, host_id, date, duration) VALUES (%d, %d, %s, %s) ON CONFLICT (project_id, host_id, date) DO UPDATE SET duration = %s WHERE project_id = %d AND host_id = %d AND date = %s AND duration < %s", si->target_project_id, si->target_host_id, argv[1], argv[2], argv[2], si->target_project_id, si->target_host_id, argv[1], argv[2]) < 0) {
 		err(EXIT_FAILURE, "asprintf");
 		/* NOTREACHED */
 	}
@@ -451,18 +451,7 @@ merge_host(void *result, int argc, char **argv, char **column_name)
 	si->import_project_id = -1;
 
 	char *sql;
-	if (asprintf(&sql, "DELETE FROM activity WHERE host_id = %d", si->target_host_id) < 0) {
-		err(EXIT_FAILURE, "asprintf");
-		/* NOTREACHED */
-	}
-
 	char *errmsg;
-	if (sqlite3_exec(si->target->db, sql, NULL, NULL, &errmsg) != SQLITE_OK) {
-		errx(EXIT_FAILURE, "%s", errmsg);
-		/* NOTREACHED */
-	}
-
-	free(sql);
 
 	if (asprintf(&sql, "SELECT project_id, date, duration FROM activity WHERE host_id = %s ORDER BY project_id", argv[0]) < 0) {
 		err(EXIT_FAILURE, "asprintf");
@@ -488,7 +477,17 @@ database_merge(struct database *database, struct database *import)
 	};
 
 	char *errmsg;
+	if (sqlite3_exec(database->db, "BEGIN TRANSACTION", NULL, 0, &errmsg) != SQLITE_OK) {
+		errx(EXIT_FAILURE, "%s", errmsg);
+		/* NOTREACHED */
+	}
+
 	if (sqlite3_exec(import->db, "SELECT id, name FROM hosts", merge_host, &si, &errmsg) != SQLITE_OK) {
+		errx(EXIT_FAILURE, "%s", errmsg);
+		/* NOTREACHED */
+	}
+
+	if (sqlite3_exec(database->db, "COMMIT", NULL, 0, &errmsg) != SQLITE_OK) {
 		errx(EXIT_FAILURE, "%s", errmsg);
 		/* NOTREACHED */
 	}
