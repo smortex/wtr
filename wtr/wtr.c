@@ -82,6 +82,10 @@ usage(int exit_code)
 	fprintf(stderr, "  last quarter\n");
 	fprintf(stderr, "  <n> quarters ago\n");
 	fprintf(stderr, "  last <n> quarters\n");
+	fprintf(stderr, "  this year\n");
+	fprintf(stderr, "  last year\n");
+	fprintf(stderr, "  <n> years ago\n");
+	fprintf(stderr, "  last <n> years\n");
 	fprintf(stderr, "  on <date>\n");
 	fprintf(stderr, "  since <date>\n");
 	fprintf(stderr, "  until <date>\n");
