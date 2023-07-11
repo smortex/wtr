@@ -240,16 +240,23 @@ report_project_duration(const char *project, int duration, void *user_data)
 {
 	struct report_project_duration_data *data = user_data;
 
-	wprintf(data->wformat_string, project);
-	print_duration(duration);
+	int active = 0;
 	if (data->current) {
 		for (size_t i = 0; i < nprojects; i++) {
 			if (projects[i].active && strcmp((const char *)project, projects[i].name) == 0) {
-				wprintf(L" +");
+				active = 1;
 			}
 		}
 	}
-	wprintf(L"\n");
+
+	if (duration > 0 || active) {
+		wprintf(data->wformat_string, project);
+		print_duration(duration);
+		if (active) {
+			wprintf(L" +");
+		}
+		wprintf(L"\n");
+	}
 }
 
 void
@@ -278,29 +285,30 @@ wtr_report(struct database *database, report_options_t options)
 	const char *p = format_string;
 	mbsrtowcs(wformat_string, &p, BUFSIZ, NULL);
 
-	GString *sql_filter = g_string_new("");
+	GString *project_sql_filter = g_string_new("");
 	if (options.projects) {
-		g_string_append(sql_filter, " AND project_id IN (");
+		g_string_append(project_sql_filter, " WHERE projects.id IN (");
 		id_list_t *item = options.projects;
 
 		for (item = options.projects; item; item = item->next) {
-			g_string_append_printf(sql_filter, "%d", item->id);
+			g_string_append_printf(project_sql_filter, "%d", item->id);
 			if (item->next)
-				g_string_append(sql_filter, ", ");
+				g_string_append(project_sql_filter, ", ");
 		}
-		g_string_append(sql_filter, ")");
+		g_string_append(project_sql_filter, ")");
 	}
 
+	GString *host_sql_filter = g_string_new("");
 	if (options.hosts) {
-		g_string_append(sql_filter, " AND host_id IN (");
+		g_string_append(host_sql_filter, " AND host_id IN (");
 		id_list_t *item = options.hosts;
 
 		for (item = options.hosts; item; item = item->next) {
-			g_string_append_printf(sql_filter, "%d", item->id);
+			g_string_append_printf(host_sql_filter, "%d", item->id);
 			if (item->next)
-				g_string_append(sql_filter, ", ");
+				g_string_append(host_sql_filter, ", ");
 		}
-		g_string_append(sql_filter, ")");
+		g_string_append(host_sql_filter, ")");
 	}
 
 	while (since < until) {
@@ -321,7 +329,7 @@ wtr_report(struct database *database, report_options_t options)
 			.current = current,
 		};
 		int total_duration = 0;
-		total_duration = database_get_duration_by_project(database, since, stop, sql_filter->str, report_project_duration, &data);
+		total_duration = database_get_duration_by_project(database, since, stop, project_sql_filter->str, host_sql_filter->str, report_project_duration, &data);
 
 		wprintf(L"    ");
 		for (int i = 0; i < longest_name + 18; i++) {
@@ -342,7 +350,8 @@ wtr_report(struct database *database, report_options_t options)
 
 	id_list_free(options.projects);
 	free(wformat_string);
-	free(format_string);
+	free(project_sql_filter);
+	free(host_sql_filter);
 }
 
 int
