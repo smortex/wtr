@@ -336,35 +336,37 @@ database_get_duration(struct database *database, time_t since, time_t until, con
 }
 
 int
-database_get_duration_by_project(struct database *database, time_t since, time_t until, char *sql_filter, void (*callback)(const char *project, int duration, void *data), void *data)
+database_get_duration_by_project(struct database *database, time_t since, time_t until, char *project_sql_filter, char *host_sql_filter, void (*callback)(const char *project, int duration, void *data), void *data)
 {
 	int total_duration = 0;
 
 	char *sql = NULL;
 
-	if (asprintf(&sql, "SELECT projects.name, SUM(activity.duration) FROM projects LEFT JOIN activity on projects.id = project_id WHERE date >= %ld AND date < %ld%s GROUP BY activity.project_id ORDER BY LOWER(projects.name)", since, until, sql_filter) < 0) {
+	if (asprintf(&sql, "SELECT name, (SELECT COALESCE(SUM(duration), 0) FROM activity WHERE projects.id = project_id AND date >= %ld AND date < %ld%s) FROM projects %s ORDER BY LOWER(projects.name)", since, until, host_sql_filter, project_sql_filter) < 0) {
 		err(EXIT_FAILURE, "asprintf");
 		/* NOTREACHED */
 	}
 
 	sqlite3_stmt *stmt;
-	if (sqlite3_prepare_v2(database->db, sql, strlen(sql), &stmt, NULL) != SQLITE_OK) {
-		err(EXIT_FAILURE, "sqlite3_prepare_v2");
+	int res;
+	if ((res = sqlite3_prepare_v2(database->db, sql, strlen(sql), &stmt, NULL)) != SQLITE_OK) {
+		errx(EXIT_FAILURE, "sqlite3_prepare_v2: %s", sqlite3_errstr(res));
 	}
 
-	int res;
 	while ((res = sqlite3_step(stmt)) != SQLITE_DONE) {
 		if (res == SQLITE_ROW) {
 			callback((const char *)sqlite3_column_text(stmt, 0),
 			         sqlite3_column_int(stmt, 1),
 			         data);
 		} else {
-			err(EXIT_FAILURE, "sqlite3_step");
+			errx(EXIT_FAILURE, "sqlite3_step: %s", sqlite3_errstr(res));
 		}
 		total_duration += sqlite3_column_int(stmt, 1);
 	}
 
-	sqlite3_finalize(stmt);
+	if ((res = sqlite3_finalize(stmt)) != SQLITE_OK) {
+		errx(EXIT_FAILURE, "sqlite3_finalize: %s", sqlite3_errstr(res));
+	}
 
 	free(sql);
 
