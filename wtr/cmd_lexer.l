@@ -19,6 +19,7 @@ to				{ return TO; }
 from				{ return FROM; }
 today				{ return TODAY; }
 yesterday			{ return YESTERDAY; }
+tomorrow			{ return TOMORROW; }
 active				{ return ACTIVE; }
 edit				{ return EDIT; }
 list				{ return LIST; }
@@ -26,7 +27,9 @@ since				{ return SINCE; }
 until				{ return UNTIL; }
 this				{ return THIS; }
 last				{ return LAST; }
+next				{ return NEXT; }
 ago				{ return AGO; }
+in				{ return IN; }
 by				{ return BY; }
 rounding			{ return ROUNDING; }
 on				{ return ON; }
