@@ -300,7 +300,7 @@ wtr_report(struct database *database, report_options_t options)
 	const char *p = format_string;
 	mbsrtowcs(wformat_string, &p, BUFSIZ, NULL);
 
-	GString *project_sql_filter = g_string_new("");
+	GString *project_sql_filter = g_string_new(NULL);
 	if (options.projects) {
 		g_string_append(project_sql_filter, " WHERE projects.id IN (");
 		id_list_t *item = options.projects;
@@ -313,7 +313,7 @@ wtr_report(struct database *database, report_options_t options)
 		g_string_append(project_sql_filter, ")");
 	}
 
-	GString *host_sql_filter = g_string_new("");
+	GString *host_sql_filter = g_string_new(NULL);
 	if (options.hosts) {
 		g_string_append(host_sql_filter, " AND host_id IN (");
 		id_list_t *item = options.hosts;
@@ -365,8 +365,8 @@ wtr_report(struct database *database, report_options_t options)
 
 	id_list_free(options.projects);
 	free(wformat_string);
-	free(project_sql_filter);
-	free(host_sql_filter);
+	g_string_free(project_sql_filter, TRUE);
+	g_string_free(host_sql_filter, TRUE);
 }
 
 int
@@ -404,7 +404,7 @@ wtr_graph(struct database *database, report_options_t options)
 
 	time_t tomorrow = add_day(today(), 1);
 
-	GString *sql_filter = g_string_new("");
+	GString *sql_filter = g_string_new(NULL);
 	if (options.projects) {
 		g_string_append(sql_filter, " AND project_id IN (");
 		id_list_t *item = options.projects;
