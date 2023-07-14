@@ -374,11 +374,11 @@ terminal_width(void)
 {
 #if defined(__linux__)
 	struct winsize ws;
-	ioctl(0, TIOCGWINSZ, &ws);
+	ioctl(STDOUT_FILENO, TIOCGWINSZ, &ws);
 	return ws.ws_col;
 #elif defined(__FreeBSD__)
 	struct winsize ws;
-	tcgetwinsize(0, &ws);
+	tcgetwinsize(STDOUT_FILENO, &ws);
 	return ws.ws_col;
 #else
 	return 80;
