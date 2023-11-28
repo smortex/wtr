@@ -56,6 +56,8 @@ usage(int exit_code)
 	fprintf(stderr, "  <report>                                  Report time spent on projects\n");
 	fprintf(stderr, "  graph <time-span>                         Visually represent time spent on\n");
 	fprintf(stderr, "                                            projects\n");
+	fprintf(stderr, "  merge <filename>                          Merge another wtr database with the\n");
+	fprintf(stderr, "                                            locale one\n");
 	fprintf(stderr, "\n");
 	fprintf(stderr, "Durations:\n");
 	fprintf(stderr, "  <sec>\n");
