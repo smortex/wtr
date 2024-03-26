@@ -5,6 +5,7 @@
 #include <sys/wait.h>
 
 #include <err.h>
+#include <getopt.h>
 #include <glib.h>
 #include <locale.h>
 #include <stdio.h>
@@ -42,7 +43,10 @@ print_duration(int duration)
 static void
 usage(int exit_code)
 {
-	fprintf(stderr, "usage: wtr <command>\n");
+	fprintf(stderr, "usage: wtr [-d] <command>\n");
+	fprintf(stderr, "\n");
+	fprintf(stderr, "Options:\n");
+	fprintf(stderr, "  -d, --debug                               Enable debug output\n");
 	fprintf(stderr, "\n");
 	fprintf(stderr, "Commands:\n");
 	fprintf(stderr, "  add <duration> to <project>               Add work time to a project\n");
@@ -162,9 +166,27 @@ main(int argc, char *argv[])
 		exit(1);
 	}
 
-	if (argc > 1) {
-		global_argc = argc - 1;
-		global_argv = argv + 1;
+	struct option longopts[] = {
+		{ "debug", no_argument, NULL, 'd' },
+		{ NULL, 0, NULL, 0 },
+	};
+
+	int ch;
+	while ((ch = getopt_long(argc, argv, "d", longopts, NULL)) != -1) {
+		switch (ch) {
+		case 'd':
+			yydebug = 1;
+			break;
+		default:
+			usage(EXIT_FAILURE);
+		}
+	}
+	argc -= optind;
+	argv += optind;
+
+	if (argc) {
+		global_argc = argc;
+		global_argv = argv;
 	} else {
 		global_argc = default_argc;
 		global_argv = default_argv;
