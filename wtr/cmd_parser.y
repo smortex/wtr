@@ -117,6 +117,8 @@ report_options_t empty_options;
 
 %parse-param {struct database *database}
 
+%destructor { free($$); } <string>
+
 %%
 
 command: ACTIVE YYEOF { wtr_active(); }
