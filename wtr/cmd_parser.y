@@ -72,12 +72,48 @@ id_list_free(id_list_t *head)
     }
 }
 
+void
+id_list_print(FILE *io, id_list_t *head)
+{
+    id_list_t *next;
+    while (head) {
+	next = head->next;
+	fprintf(io, "%d", head->id);
+	if (next)
+	    fprintf(io, ", ");
+	head = next;
+    }
+}
+
+void
+time_print(FILE *io, time_t time)
+{
+    struct tm *t = localtime(&time);
+    char buf[BUFSIZ];
+    strftime(buf, sizeof(buf), "%c", t);
+    fprintf(io, "%ld (%s)", time, buf);
+}
+
 report_options_t empty_options;
 
 %}
 
 %define parse.trace
 %define parse.error verbose
+
+%printer { fprintf(yyo, "%d", $$); } <integer>;
+%printer { time_print(yyo, $$); } <date>;
+%printer { fprintf(yyo, "%s", $$); } <string>;
+%printer {
+    fprintf(yyo, "since=");
+    time_print(yyo, $$.since);
+    fprintf(yyo, " until=");
+    time_print(yyo, $$.until);
+    fprintf(yyo, " rounding=%d projects=%p hosts=%p", $$.rounding, $$.projects, $$.hosts); } <report_options>;
+%printer {
+    fprintf(yyo, "<%p> ", $$);
+    id_list_print(yyo, $$);
+} <projects> <hosts>;
 
 %union {
     int integer;
