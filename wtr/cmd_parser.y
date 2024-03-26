@@ -117,7 +117,6 @@ report_options_t empty_options;
 
 %union {
     int integer;
-    int project_id;
     time_t date;
     char *string;
     time_unit_t time_unit;
