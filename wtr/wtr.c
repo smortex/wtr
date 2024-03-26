@@ -8,6 +8,7 @@
 #include <getopt.h>
 #include <glib.h>
 #include <locale.h>
+#include <math.h>
 #include <stdio.h>
 #include <string.h>
 #include <termios.h>
@@ -283,7 +284,7 @@ report_project_duration(const char *project, int duration, void *user_data)
 	if (data->current) {
 		for (size_t i = 0; i < nprojects; i++) {
 			if (projects[i].active && strcmp((const char *)project, projects[i].name) == 0) {
-				active = 1;
+				active += projects[i].active;
 			}
 		}
 	}
@@ -292,7 +293,10 @@ report_project_duration(const char *project, int duration, void *user_data)
 		wprintf(data->wformat_string, project);
 		print_duration(duration);
 		if (active) {
-			wprintf(L" +");
+			wprintf(L" ");
+			for (int n = floor(log2(active + 1)); n > 0; n--) {
+				wprintf(L"+");
+			}
 		}
 		wprintf(L"\n");
 	}
