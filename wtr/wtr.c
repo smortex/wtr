@@ -325,7 +325,6 @@ wtr_report(struct database *database, report_options_t options)
 			wprintf(L"\n");
 	}
 
-	id_list_free(options.projects);
 	free(wformat_string);
 	g_string_free(project_sql_filter, TRUE);
 	g_string_free(host_sql_filter, TRUE);
