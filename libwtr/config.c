@@ -51,24 +51,38 @@ config_load(struct database *database)
 
 	projects = malloc(sizeof(*projects) * nprojects);
 
+	gsize valid_projects = 0;
 	for (gsize i = 0; i < nprojects; i++) {
 		gchar *root;
 		if (!(root = g_key_file_get_string(conf_file, groups[i], "root", NULL))) {
-			warnx("Project %s has no root", groups[i]);
-			return -1;
+			warnx("Ignoring project \"%s\": no root key", groups[i]);
+			continue;
 		}
 
-		projects[i].id = database_project_find_or_create_by_name(database, groups[i]);
-		projects[i].name = g_strdup(groups[i]);
-		projects[i].root = realpath(root, NULL);
-		projects[i].active = 0;
+		if (!(root = realpath(root, NULL))) {
+			warn("Ignoring project \"%s\": realpath", groups[i]);
+			continue;
+		}
+
+		projects[valid_projects].id = database_project_find_or_create_by_name(database, groups[i]);
+		projects[valid_projects].name = g_strdup(groups[i]);
+		projects[valid_projects].root = realpath(root, NULL);
+		projects[valid_projects].active = 0;
+		valid_projects++;
 
 		free(root);
 	}
 
+	nprojects = valid_projects;
+
 	g_strfreev(groups);
 
 	g_key_file_free(conf_file);
+
+	if (!(projects = realloc(projects, sizeof(*projects) * nprojects))) {
+		warn("realloc");
+		return -1;
+	}
 
 	return 0;
 }
