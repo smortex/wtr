@@ -45,74 +45,6 @@ static void
 usage(int exit_code)
 {
 	fprintf(stderr, "usage: wtr [-d] <command>\n");
-	fprintf(stderr, "\n");
-	fprintf(stderr, "Options:\n");
-	fprintf(stderr, "  -d, --debug                               Enable debug output\n");
-	fprintf(stderr, "\n");
-	fprintf(stderr, "Commands:\n");
-	fprintf(stderr, "  add <duration> to <project>               Add work time to a project\n");
-	fprintf(stderr, "  add <duration> to <project> <when>\n");
-	fprintf(stderr, "  remove <duration> from <project>          Remove work time from a project\n");
-	fprintf(stderr, "  remove <duration> from <project> <when>\n");
-	fprintf(stderr, "  edit                                      Edit wtrd(1) configuration file\n");
-	fprintf(stderr, "  active                                    List currently active projects\n");
-	fprintf(stderr, "  list hosts                                List known hosts\n");
-	fprintf(stderr, "  list projects                             List known projects\n");
-	fprintf(stderr, "  <report>                                  Report time spent on projects\n");
-	fprintf(stderr, "  graph <time-span>                         Visually represent time spent on\n");
-	fprintf(stderr, "                                            projects\n");
-	fprintf(stderr, "  merge <filename>                          Merge another wtr database with the\n");
-	fprintf(stderr, "                                            locale one\n");
-	fprintf(stderr, "\n");
-	fprintf(stderr, "Durations:\n");
-	fprintf(stderr, "  <sec>\n");
-	fprintf(stderr, "  <hrs>:<min>\n");
-	fprintf(stderr, "  <hrs>:<min>:<sec>\n");
-	fprintf(stderr, "  <hrs>hrs\n");
-	fprintf(stderr, "  <min>min\n");
-	fprintf(stderr, "  <sec>sec\n");
-	fprintf(stderr, "\n");
-	fprintf(stderr, "Reports:\n");
-	fprintf(stderr, "  today\n");
-	fprintf(stderr, "  yesterday\n");
-	fprintf(stderr, "  tomorrow\n");
-	fprintf(stderr, "  <n> days ago | -<n>\n");
-	fprintf(stderr, "  in <n> days | +<n> | <n>\n");
-	fprintf(stderr, "  last <n> days\n");
-	fprintf(stderr, "  next <n> days\n");
-	fprintf(stderr, "  this week\n");
-	fprintf(stderr, "  last week\n");
-	fprintf(stderr, "  next week\n");
-	fprintf(stderr, "  <n> weeks ago\n");
-	fprintf(stderr, "  in <n> weeks\n");
-	fprintf(stderr, "  last <n> weeks\n");
-	fprintf(stderr, "  next <n> weeks\n");
-	fprintf(stderr, "  this month\n");
-	fprintf(stderr, "  last month\n");
-	fprintf(stderr, "  next month\n");
-	fprintf(stderr, "  <n> months ago\n");
-	fprintf(stderr, "  in <n> months\n");
-	fprintf(stderr, "  last <n> months\n");
-	fprintf(stderr, "  next <n> months\n");
-	fprintf(stderr, "  this quarter\n");
-	fprintf(stderr, "  last quarter\n");
-	fprintf(stderr, "  next quarter\n");
-	fprintf(stderr, "  <n> quarters ago\n");
-	fprintf(stderr, "  in <n> quarters\n");
-	fprintf(stderr, "  last <n> quarters\n");
-	fprintf(stderr, "  next <n> quarters\n");
-	fprintf(stderr, "  this year\n");
-	fprintf(stderr, "  last year\n");
-	fprintf(stderr, "  next year\n");
-	fprintf(stderr, "  <n> years ago\n");
-	fprintf(stderr, "  in <n> years\n");
-	fprintf(stderr, "  last <n> years\n");
-	fprintf(stderr, "  next <n> years\n");
-	fprintf(stderr, "  on <date>\n");
-	fprintf(stderr, "  since <date>\n");
-	fprintf(stderr, "  until <date>\n");
-	fprintf(stderr, "  rounding <duration>\n");
-	fprintf(stderr, "  on <project ...>\n");
 	exit(exit_code);
 }
 
@@ -169,15 +101,21 @@ main(int argc, char *argv[])
 
 	struct option longopts[] = {
 		{ "debug", no_argument, NULL, 'd' },
+		{ "help", no_argument, NULL, 'h' },
 		{ NULL, 0, NULL, 0 },
 	};
 
 	int ch;
-	while ((ch = getopt_long(argc, argv, "d", longopts, NULL)) != -1) {
+	while ((ch = getopt_long(argc, argv, "dh", longopts, NULL)) != -1) {
 		switch (ch) {
 		case 'd':
 			yydebug = 1;
 			break;
+		case 'h':
+			if (system("man wtr") != 0)
+				exit(EXIT_SUCCESS);
+			exit(EXIT_SUCCESS);
+			break; /* NOTREACHED */
 		default:
 			usage(EXIT_FAILURE);
 		}
