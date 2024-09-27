@@ -3,8 +3,11 @@
 .Os
 .Sh NAME
 .Nm wtr
-.Nd Work Time Recorder
+.Nd Work Time Recorder Client
 .Sh SYNOPSIS
+.Nm
+.Op Ar option
+.Op Ar command
 .Nm
 .Cm add
 .Ar duration
@@ -40,18 +43,38 @@ utility query and update the
 .Xr wtrd 1
 database.
 .Pp
+The options are as follows:
+.Bl -tag -width xxxxxxxxxxx
+.It Fl d , Fl \-debug
+Generate debug output.
+.El
+.Pp
 Multiple commands are supported:
-.Bl -tag -width "remove" -compact
+.Bl -tag -width "remove"
 .It Cd add
-Add
+Add some
 .Ar duration
-to
-.Ar project .
+to a
+.Ar project
+at the beginning of the specified
+.Ar moment
+(now if no
+.Ar moment
+is provided).
+.Pp
+.Nm Cm add Ar duration Cm to Ar project Op Ar moment
 .It Cd remove
-Remove
+Remove some
 .Ar duration
-from
-.Ar project .
+from a
+.Ar project
+at the beginning of the specified
+.Ar moment
+(now if no
+.Ar moment
+is specified).
+.Pp
+.Nm Cm remove Ar duration Cm to Ar project Op Ar moment
 .It Cd active
 List active projects.
 .It Cd edit
@@ -60,6 +83,10 @@ Edit
 configuration file.
 .It Cd list
 List known hosts or projects that can be used for filtering.
+.Pp
+.Nm Cm list Cm hosts
+.br
+.Nm Cm list Cm projects
 .It Ar report
 Report time spent on project. See the REPORTS section bellow.
 .It Cd graph
