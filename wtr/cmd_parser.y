@@ -153,6 +153,8 @@ report_options_t empty_options;
 %parse-param {struct database *database}
 
 %destructor { free($$); } <string>
+%destructor { id_list_free($$); } <projects> <hosts>
+%destructor { id_list_free($$.hosts); id_list_free($$.projects); } <report_options>
 
 %%
 
@@ -160,14 +162,14 @@ command: ACTIVE YYEOF { wtr_active(); }
        | EDIT YYEOF { wtr_edit(); }
        | LIST PROJECTS YYEOF { wtr_list_projects(database); }
        | LIST HOSTS YYEOF { wtr_list_hosts(database); }
-       | ADD duration TO IDENTIFIER YYEOF { wtr_add_duration_to_project_on(database, $2, $4, today()); }
-       | REMOVE duration FROM IDENTIFIER YYEOF { wtr_add_duration_to_project_on(database, - $2, $4, today()); }
-       | ADD duration TO IDENTIFIER moment YYEOF { wtr_add_duration_to_project_on(database, $2, $4, $5.since); }
-       | REMOVE duration FROM IDENTIFIER moment YYEOF { wtr_add_duration_to_project_on(database, - $2, $4, $5.since); }
-       | report YYEOF {  wtr_report(database, $1); }
+       | ADD duration TO IDENTIFIER YYEOF { wtr_add_duration_to_project_on(database, $2, $4, today()); free($4); }
+       | REMOVE duration FROM IDENTIFIER YYEOF { wtr_add_duration_to_project_on(database, - $2, $4, today()); free($4); }
+       | ADD duration TO IDENTIFIER moment YYEOF { wtr_add_duration_to_project_on(database, $2, $4, $5.since); free($4); }
+       | REMOVE duration FROM IDENTIFIER moment YYEOF { wtr_add_duration_to_project_on(database, - $2, $4, $5.since); free($4); }
+       | report YYEOF {  wtr_report(database, $1); id_list_free($1.projects); id_list_free($1.hosts); }
        | GRAPH YYEOF { wtr_graph(database, empty_options); }
-       | GRAPH graph_options YYEOF { wtr_graph(database, $2); }
-       | MERGE IDENTIFIER YYEOF { wtr_merge(database, $2); }
+       | GRAPH graph_options YYEOF { wtr_graph(database, $2); id_list_free($2.projects); id_list_free($2.hosts); }
+       | MERGE IDENTIFIER YYEOF { wtr_merge(database, $2); free($2); }
        ;
 
 report: report report_part { $$ = combine_report_parts($1, $2); }
@@ -229,12 +231,12 @@ time_unit: DAY { $$ = 0; }
 	 | YEAR { $$ = 4; }
 	 ;
 
-projects: projects IDENTIFIER { id_list_add(database, $1, "project", database_project_find_by_name, $2); $$ = $1; }
-	| IDENTIFIER { $$ = id_list_new(database, "project", database_project_find_by_name, $1); }
+projects: projects IDENTIFIER { id_list_add(database, $1, "project", database_project_find_by_name, $2); $$ = $1; free($2); }
+	| IDENTIFIER { $$ = id_list_new(database, "project", database_project_find_by_name, $1); free($1); }
 	;
 
-hosts: hosts IDENTIFIER { id_list_add(database, $1, "host", database_host_find_by_name, $2); $$ = $1; }
-     | IDENTIFIER { $$ = id_list_new(database, "host", database_host_find_by_name, $1); }
+hosts: hosts IDENTIFIER { id_list_add(database, $1, "host", database_host_find_by_name, $2); $$ = $1; free($2); }
+     | IDENTIFIER { $$ = id_list_new(database, "host", database_host_find_by_name, $1); free($1); }
      ;
 
 %%
