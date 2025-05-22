@@ -401,6 +401,7 @@ wtr_graph(struct database *database, report_options_t options)
 
 	int min = INT_MAX;
 	int max = 0;
+	int total = 0;
 	wprintf(L"    ");
 	for (int week = 0; week < nweeks ; week++) {
 		time_t s = add_week(since, week);
@@ -436,6 +437,7 @@ wtr_graph(struct database *database, report_options_t options)
 			} else {
 				int duration = database_get_duration(database, t, add_day(t, 1), sql_filter->str);
 				durations[week * 7 + day_of_week] = duration;
+				total += duration;
 				if (duration > max)
 					max = duration;
 				if (duration > 0 && duration < min)
@@ -518,6 +520,27 @@ wtr_graph(struct database *database, report_options_t options)
 			wprintf(L"    ");
 		}
 	}
+	wprintf(L"\n");
+
+	for (int i = 5; i < nweeks; i++) {
+		wprintf(L"    ");
+	}
+	wprintf(L" \033[48;2;%d;%d;%dm\033[38;2;235;237;240m MAX \033[0m ", 33, 110, 57);
+	print_duration(max);
+	wprintf(L"\n");
+
+	for (int i = 5; i < nweeks; i++) {
+		wprintf(L"    ");
+	}
+	wprintf(L" \033[48;2;%d;%d;%dm\033[38;2;101;109;118m MIN \033[0m ", 155, 233, 168);
+	print_duration(min == INT_MAX ? 0 : min);
+	wprintf(L"\n");
+
+	for (int i = 5; i < nweeks; i++) {
+		wprintf(L"    ");
+	}
+	wprintf(L" TOTAL ");
+	print_duration(total);
 	wprintf(L"\n");
 
 	g_string_free(sql_filter, TRUE);
