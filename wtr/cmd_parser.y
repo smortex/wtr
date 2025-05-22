@@ -76,6 +76,7 @@ void
 id_list_print(FILE *io, id_list_t *head)
 {
     id_list_t *next;
+    fprintf(io, "(");
     while (head) {
 	next = head->next;
 	fprintf(io, "%d", head->id);
@@ -83,6 +84,7 @@ id_list_print(FILE *io, id_list_t *head)
 	    fprintf(io, ", ");
 	head = next;
     }
+    fprintf(io, ")");
 }
 
 void
@@ -109,7 +111,11 @@ report_options_t empty_options;
     time_print(yyo, $$.since);
     fprintf(yyo, " until=");
     time_print(yyo, $$.until);
-    fprintf(yyo, " rounding=%d projects=%p hosts=%p", $$.rounding, $$.projects, $$.hosts); } <report_options>;
+    fprintf(yyo, " rounding=%d projects=", $$.rounding);
+    id_list_print(yyo, $$.projects);
+    fprintf(yyo, " hosts=");
+    id_list_print(yyo, $$.hosts);
+} <report_options>;
 %printer {
     fprintf(yyo, "<%p> ", $$);
     id_list_print(yyo, $$);
