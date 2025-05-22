@@ -74,6 +74,8 @@ beginning_of_day(time_t date)
 	tm->tm_min = 0;
 	tm->tm_hour = 0;
 
+	tm->tm_isdst = -1;
+
 	return mktime(tm);
 }
 
@@ -87,6 +89,8 @@ beginning_of_week(time_t date)
 	tm->tm_hour = 0;
 	tm->tm_mday -= tm->tm_wday;
 
+	tm->tm_isdst = -1;
+
 	return mktime(tm);
 }
 
@@ -99,6 +103,8 @@ beginning_of_month(time_t date)
 	tm->tm_min = 0;
 	tm->tm_hour = 0;
 	tm->tm_mday = 1;
+
+	tm->tm_isdst = -1;
 
 	return mktime(tm);
 }
@@ -114,6 +120,8 @@ beginning_of_quarter(time_t date)
 	tm->tm_mday = 1;
 	tm->tm_mon = tm->tm_mon / 3 * 3;
 
+	tm->tm_isdst = -1;
+
 	return mktime(tm);
 }
 
@@ -128,6 +136,8 @@ beginning_of_year(time_t date)
 	tm->tm_mday = 1;
 	tm->tm_mon = 0;
 
+	tm->tm_isdst = -1;
+
 	return mktime(tm);
 }
 
@@ -137,6 +147,8 @@ add_day(time_t date, int n)
 	struct tm *tm = localtime(&date);
 
 	tm->tm_mday += n;
+
+	tm->tm_isdst = -1;
 
 	return mktime(tm);
 }
@@ -148,6 +160,8 @@ add_week(time_t date, int n)
 
 	tm->tm_mday += n * 7;
 
+	tm->tm_isdst = -1;
+
 	return mktime(tm);
 }
 
@@ -157,6 +171,8 @@ add_month(time_t date, int n)
 	struct tm *tm = localtime(&date);
 
 	tm->tm_mon += n;
+
+	tm->tm_isdst = -1;
 
 	return mktime(tm);
 }
@@ -168,6 +184,8 @@ add_quarter(time_t date, int n)
 
 	tm->tm_mon += 3 * n;
 
+	tm->tm_isdst = -1;
+
 	return mktime(tm);
 }
 
@@ -177,6 +195,8 @@ add_year(time_t date, int n)
 	struct tm *tm = localtime(&date);
 
 	tm->tm_year += n;
+
+	tm->tm_isdst = -1;
 
 	return mktime(tm);
 }
