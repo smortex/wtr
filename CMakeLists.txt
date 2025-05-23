@@ -2,6 +2,12 @@ cmake_minimum_required(VERSION "3.18")
 project("wtr")
 include(CTest)
 
+find_program(CLANG_TIDY NAMES clang-tidy)
+
+if(CLANG_TIDY)
+set(CMAKE_C_CLANG_TIDY ${CLANG_TIDY})
+endif()
+
 add_compile_options(-Wall -Wextra -Werror)
 add_definitions(-D_GNU_SOURCE)
 
