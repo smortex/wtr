@@ -44,7 +44,7 @@ print_duration(int duration)
 static void
 usage(int exit_code)
 {
-	fprintf(stderr, "usage: wtr [-d] <command>\n");
+	fwprintf(stderr, L"usage: wtr [-d] <command>\n");
 	exit(exit_code);
 }
 
@@ -81,7 +81,7 @@ main(int argc, char *argv[])
 				err(EXIT_FAILURE, "fopen");
 			}
 
-			fprintf(f, "# Define one section per project, and set the \"root\" key to the path or its\n"
+			fwprintf(f, L"# Define one section per project, and set the \"root\" key to the path or its\n"
 				   "# root directory.\n"
 				   "# Lines starting with a '#' are comments.\n"
 				   "#\n"
