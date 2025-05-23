@@ -36,7 +36,7 @@ main(void)
 	test_scan_duration("0:01", 0, 60);
 	test_scan_duration("1:1", 0, 3660);
 	test_scan_duration("1:15", 0, 4500);
-	test_scan_duration("1:101", -1, 0);
+	test_scan_duration("1:101", 0, 9660);
 	test_scan_duration("2:20:15", 0, 8415);
 	test_scan_duration("1:1:1", 0, 3661);
 	test_scan_duration("1:01 extra", -1, -1);

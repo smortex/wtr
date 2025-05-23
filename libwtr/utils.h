@@ -5,7 +5,7 @@
 
 char		*short_hostname(void);
 int		 scan_date(const char *str, time_t *date);
-int		 scan_duration(const char *str, int *duration);
+int		 scan_duration(char *str, int *duration);
 time_t		 today(void);
 time_t		 beginning_of_day(time_t date);
 time_t		 beginning_of_week(time_t date);

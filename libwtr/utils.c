@@ -6,6 +6,8 @@
 
 #include "utils.h"
 
+#include <errno.h>
+
 char _hostname[BUFSIZ];
 char *
 short_hostname(void)
@@ -43,20 +45,40 @@ scan_date(const char *str, time_t *date)
 }
 
 int
-scan_duration(const char *str, int *duration)
+scan_duration(char *str, int *duration)
 {
-	int hrs, min, sec;
-	char rest;
+	char *p = str;
+	int pieces[3];
+	int n = 0;
 
-	if (sscanf(str, "%d:%02d:%02d%c", &hrs, &min, &sec, &rest) == 3) {
-		*duration = hrs * 3600 + min * 60 + sec;
-		return 0;
+	while (n < 3 && *p) {
+		errno = 0;
+		pieces[n++] = (int) strtol(p, &p, 10);
+		if (errno != 0) {
+			return -1;
+		}
+
+		if (*p == ':') {
+			p++;
+		}
 	}
-	if (sscanf(str, "%d:%02d%c", &hrs, &min, &rest) == 2) {
-		*duration = hrs * 3600 + min * 60;
-		return 0;
+
+	if (*p) {
+		return -1;
 	}
-	return -1;
+
+	switch (n) {
+	case 2:
+		*duration = pieces[0] * 3600 + pieces[1] * 60;
+			break;
+			case 3:
+			*duration = pieces[0] * 3600 + pieces[1] * 60 + pieces[2];
+			break;
+		default:
+			return -1;
+	}
+
+	return 0;
 }
 
 time_t

@@ -31,7 +31,12 @@ read_single_integer(void *result, int argc, char **argv, char **column_name)
 	(void) column_name;
 
 	if (argc == 1 && argv[0]) {
-		sscanf(argv[0], "%d", (int *) result);
+		int *value = result;
+		errno = 0;
+		*value = (int) strtol(argv[0], NULL, 0);
+		if (errno) {
+			return 1;
+		}
 	}
 	return 0;
 }
