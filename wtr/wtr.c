@@ -42,6 +42,167 @@ print_duration(int duration)
 }
 
 static void
+print_top_months_line(const time_t since, time_t until)
+{
+	const time_t start = beginning_of_week(since);
+	time_t week_start = start;
+
+	wprintf(L"    ");
+	while (week_start < until) {
+		struct tm tm_week_start;
+		localtime_r(&week_start, &tm_week_start);
+
+		if (week_start == since || tm_week_start.tm_mday <= 7) {
+			char buf[10];
+			strftime(buf, sizeof(buf), "%b", &tm_week_start);
+
+			if (buf[strlen(buf) - 1] == '.')
+				buf[strlen(buf) - 1] = '\0';
+
+			wchar_t wbuf[4];
+			const char *p = buf;
+			mbsrtowcs(wbuf, &p, 4, NULL);
+
+			wprintf(L"%-4.4ls", wbuf);
+		} else {
+			wprintf(L"    ");
+		}
+		week_start = add_week(week_start, 1);
+	}
+	wprintf(L"\n");
+}
+
+static void
+print_graph(const time_t since, time_t until, int *durations, int min, int max, int offset)
+{
+	time_t graph_since = beginning_of_week(since);
+	time_t graph_until = beginning_of_week(until);
+	if (graph_until < until)
+		graph_until = add_week(graph_until, 1);
+
+	for (int day_of_week = 0; day_of_week < 7; day_of_week++) {
+		// print day name
+		if (day_of_week == 1 || day_of_week == 3 || day_of_week == 5) {
+			time_t t = add_day(graph_since, day_of_week);
+			struct tm *tm = localtime(&t);
+			char buf[10];
+			strftime(buf, sizeof(buf), "%a", tm);
+
+			if (buf[strlen(buf) - 1] == '.')
+				buf[strlen(buf) - 1] = '\0';
+
+			wchar_t wbuf[4];
+			const char *p = buf;
+			mbsrtowcs(wbuf, &p, 4, NULL);
+
+			wprintf(L"%-4.4ls", wbuf);
+		} else {
+			wprintf(L"    ");
+		}
+
+		time_t t = add_day(graph_since, day_of_week);
+		// print actual data
+		for (int week = 0; t < graph_until ; t = add_week(t, 1), week++) {
+			if (t < since || t >= until) {
+				wprintf(L"\033[48;2;235;237;240m");
+				wprintf(L"    ");
+			} else {
+				struct tm* day = localtime(&t);
+				int duration = durations[week * 7 + day_of_week];
+				duration = durations[(int) (offset + difftime(t, since)) / (3600*24)];
+
+				if (duration > 0) {
+					float relative_ratio;
+
+					if (min == max)
+						relative_ratio = 0.0;
+					else
+						relative_ratio = 1.0 - (float) (duration - min) / (max - min);
+					int red = relative_ratio * (155 - 33) + 33;
+					int green = relative_ratio * (233 - 110) + 110;
+					int blue = relative_ratio * (168 - 57) + 57;
+					wprintf(L"\033[48;2;%d;%d;%dm", red, green, blue);
+					if (red + green + blue > 255 * 1.5) {
+						wprintf(L"\033[38;2;101;109;118m");
+					} else {
+						wprintf(L"\033[38;2;235;237;240m");
+					}
+				} else {
+					wprintf(L"\033[48;2;235;237;240m");
+					wprintf(L"\033[38;2;101;109;118m");
+				}
+
+				wprintf(L" %2d ", day->tm_mday);
+			}
+		}
+		wprintf(L"\033[31;0m");
+		wprintf(L"\n");
+	}
+}
+
+static void
+print_bottom_months_line(const time_t since, time_t until)
+{
+	const time_t start = beginning_of_week(since);
+	time_t week_start = start;
+
+	wprintf(L"    ");
+	while (week_start < until) {
+		time_t week_stop = MIN(add_day(add_week(week_start, 1), -1), until);
+
+		struct tm tm_week_start, tm_week_stop;
+		localtime_r(&week_start, &tm_week_start);
+		localtime_r(&week_stop, &tm_week_stop);
+
+		if (week_start == start || tm_week_start.tm_mday == 1 || (tm_week_stop.tm_mday < tm_week_start.tm_mday && week_stop < until)) {
+			char buf[10];
+			strftime(buf, sizeof(buf), "%b", &tm_week_stop);
+
+			if (buf[strlen(buf) - 1] == '.')
+				buf[strlen(buf) - 1] = '\0';
+
+			wchar_t wbuf[4];
+			const char *p = buf;
+			mbsrtowcs(wbuf, &p, 4, NULL);
+
+			wprintf(L"%-4.4ls", wbuf);
+		} else {
+			wprintf(L"    ");
+		}
+		week_start = add_week(week_start, 1);
+	}
+	wprintf(L"\n");
+}
+
+static void
+print_years_line(const time_t since, const time_t until)
+{
+	const time_t start = beginning_of_week(since);
+	time_t week_start = start;
+
+	wprintf(L"    ");
+	while (week_start < until) {
+		time_t week_stop = MIN(add_day(add_week(week_start, 1), -1), until);
+
+		struct tm tm_week_start, tm_week_stop;
+		localtime_r(&week_start, &tm_week_start);
+		localtime_r(&week_stop, &tm_week_stop);
+
+		if (week_start == start || tm_week_start.tm_yday == 0 || (tm_week_stop.tm_year != tm_week_start.tm_year && week_stop < until)) {
+
+			char buf[10];
+			strftime(buf, sizeof(buf), "%Y", &tm_week_stop);
+
+			wprintf(L"%-4s", buf);
+		} else {
+			wprintf(L"    ");
+		}
+		week_start = add_week(week_start, 1);
+	}
+	wprintf(L"\n");
+}
+
+static void
 usage(int exit_code)
 {
 	fprintf(stderr, "usage: wtr [-d] <command>\n");
@@ -349,10 +510,10 @@ terminal_width(void)
 void
 wtr_graph(struct database *database, report_options_t options)
 {
-	time_t since;
-	if (options.since) {
-		since = beginning_of_week(options.since);
-	} else {
+	time_t since = options.since;
+	time_t until = options.until;
+
+	if (!since) {
 		int weeks = (terminal_width() - 4) / 4 - 1;
 		/*                              |    |   `--- current week
 		 *                              |    `------- width of a day
@@ -361,9 +522,11 @@ wtr_graph(struct database *database, report_options_t options)
 
 		since = beginning_of_week(add_week(today(), -weeks));
 	}
-	time_t until = options.until;
 
-	time_t tomorrow = add_day(today(), 1);
+	if (!until) {
+		time_t tomorrow = add_day(today(), 1);
+		until = tomorrow;
+	}
 
 	GString *sql_filter = g_string_new(NULL);
 	if (options.projects) {
@@ -386,11 +549,6 @@ wtr_graph(struct database *database, report_options_t options)
 		g_string_append(sql_filter, ")");
 	}
 
-	if (!until)
-		until = tomorrow;
-
-	time_t last_day = add_day(until, -1);
-
 	int nweeks;
 	for (nweeks = 0; add_week(since, nweeks) < until; nweeks++);
 
@@ -402,32 +560,6 @@ wtr_graph(struct database *database, report_options_t options)
 	int min = INT_MAX;
 	int max = 0;
 	int total = 0;
-	wprintf(L"    ");
-	for (int week = 0; week < nweeks ; week++) {
-		time_t s = add_week(since, week);
-		time_t u = MIN(add_day(add_week(s, 1), -1), last_day);
-
-		struct tm tms, tmu;
-		localtime_r(&s, &tms);
-		localtime_r(&u, &tmu);
-
-		if (week == 0 || tms.tm_mday == 1 || tmu.tm_mday < tms.tm_mday) {
-			char buf[10];
-			strftime(buf, sizeof(buf), "%b", &tmu);
-
-			if (buf[strlen(buf) - 1] == '.')
-				buf[strlen(buf) - 1] = '\0';
-
-			wchar_t wbuf[4];
-			const char *p = buf;
-			mbsrtowcs(wbuf, &p, 4, NULL);
-
-			wprintf(L"%-4.4ls", wbuf);
-		} else {
-			wprintf(L"    ");
-		}
-	}
-	wprintf(L"\n");
 
 	for (int day_of_week = 0; day_of_week < 7; day_of_week++) {
 		for (int week = 0; week < nweeks ; week++) {
@@ -446,100 +578,37 @@ wtr_graph(struct database *database, report_options_t options)
 		}
 	}
 
-	for (int day_of_week = 0; day_of_week < 7; day_of_week++) {
-		if (day_of_week == 1 || day_of_week == 3 || day_of_week == 5) {
-			time_t t = add_day(since, day_of_week);
-			struct tm *tm = localtime(&t);
-			char buf[10];
-			strftime(buf, sizeof(buf), "%a", tm);
+	time_t start = since;
 
-			if (buf[strlen(buf) - 1] == '.')
-				buf[strlen(buf) - 1] = '\0';
+	while (start < until) {
 
-			wchar_t wbuf[4];
-			const char *p = buf;
-			mbsrtowcs(wbuf, &p, 4, NULL);
+		time_t stop;
+		if (options.next)
+			stop = MIN(until, options.next(start, 1));
+		else
+			stop = until;
 
-			wprintf(L"%-4.4ls", wbuf);
-		} else {
-			wprintf(L"    ");
-		}
-
-		for (int week = 0; week < nweeks ; week++) {
-			time_t t = add_week(add_day(since, day_of_week), week);
-			if (t < options.since || t >= until) {
-				wprintf(L"\033[48;2;235;237;240m");
-				wprintf(L"    ");
-			} else {
-				struct tm* day = localtime(&t);
-				int duration = durations[week * 7 + day_of_week];
-
-				if (duration > 0) {
-					float relative_ratio;
-
-					if (min == max)
-						relative_ratio = 0.0;
-					else
-						relative_ratio = 1.0 - (float) (duration - min) / (max - min);
-					int red = relative_ratio * (155 - 33) + 33;
-					int green = relative_ratio * (233 - 110) + 110;
-					int blue = relative_ratio * (168 - 57) + 57;
-					wprintf(L"\033[48;2;%d;%d;%dm", red, green, blue);
-					if (red + green + blue > 255 * 1.5) {
-						wprintf(L"\033[38;2;101;109;118m");
-					} else {
-						wprintf(L"\033[38;2;235;237;240m");
-					}
-				} else {
-					wprintf(L"\033[48;2;235;237;240m");
-					wprintf(L"\033[38;2;101;109;118m");
-				}
-
-				wprintf(L" %2d ", day->tm_mday);
-			}
-		}
-		wprintf(L"\033[31;0m");
+		print_top_months_line(start, stop);
+		print_graph(start, stop, durations, min, max, difftime(start, since));
+		print_bottom_months_line(start, stop);
+		print_years_line(start, stop);
 		wprintf(L"\n");
+
+		if (!options.next)
+			break;
+
+		start = stop;
 	}
 
-	wprintf(L"    ");
-	for (int week = 0; week < nweeks ; week++) {
-		time_t s = add_week(since, week);
-		time_t u = MIN(add_week(s, 1), last_day);
-
-		struct tm tms, tmu;
-		localtime_r(&s, &tms);
-		localtime_r(&u, &tmu);
-
-		if (week == 0 || tms.tm_yday == 0 || (tmu.tm_yday > 0 && tmu.tm_yday < tms.tm_yday)) {
-			char buf[10];
-			strftime(buf, sizeof(buf), "%Y", &tmu);
-
-			wprintf(L"%-4s", buf);
-		} else {
-			wprintf(L"    ");
-		}
-	}
-	wprintf(L"\n");
-
-	for (int i = 5; i < nweeks; i++) {
-		wprintf(L"    ");
-	}
-	wprintf(L" \033[48;2;%d;%d;%dm\033[38;2;235;237;240m MAX \033[0m ", 33, 110, 57);
+	wprintf(L"    \033[48;2;%d;%d;%dm\033[38;2;235;237;240m MAX \033[0m ", 33, 110, 57);
 	print_duration(max);
 	wprintf(L"\n");
 
-	for (int i = 5; i < nweeks; i++) {
-		wprintf(L"    ");
-	}
-	wprintf(L" \033[48;2;%d;%d;%dm\033[38;2;101;109;118m MIN \033[0m ", 155, 233, 168);
+	wprintf(L"    \033[48;2;%d;%d;%dm\033[38;2;101;109;118m MIN \033[0m ", 155, 233, 168);
 	print_duration(min == INT_MAX ? 0 : min);
 	wprintf(L"\n");
 
-	for (int i = 5; i < nweeks; i++) {
-		wprintf(L"    ");
-	}
-	wprintf(L" TOTAL ");
+	wprintf(L"    TOTAL ");
 	print_duration(total);
 	wprintf(L"\n");
 
