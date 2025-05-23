@@ -42,7 +42,37 @@ print_duration(int duration)
 }
 
 static void
-print_months_line(const time_t since, time_t until)
+print_top_months_line(const time_t since, time_t until)
+{
+	time_t week_start = since;
+
+	wprintf(L"    ");
+	while (week_start <= until) {
+		struct tm tm_week_start;
+		localtime_r(&week_start, &tm_week_start);
+
+		if (week_start == since || tm_week_start.tm_mday <= 7) {
+			char buf[10];
+			strftime(buf, sizeof(buf), "%b", &tm_week_start);
+
+			if (buf[strlen(buf) - 1] == '.')
+				buf[strlen(buf) - 1] = '\0';
+
+			wchar_t wbuf[4];
+			const char *p = buf;
+			mbsrtowcs(wbuf, &p, 4, NULL);
+
+			wprintf(L"%-4.4ls", wbuf);
+		} else {
+			wprintf(L"    ");
+		}
+		week_start = add_week(week_start, 1);
+	}
+	wprintf(L"\n");
+}
+
+static void
+print_bottom_months_line(const time_t since, time_t until)
 {
 	time_t week_start = since;
 
@@ -463,7 +493,7 @@ wtr_graph(struct database *database, report_options_t options)
 	int max = 0;
 	int total = 0;
 
-	print_months_line(since, last_day);
+	print_top_months_line(since, last_day);
 
 	for (int day_of_week = 0; day_of_week < 7; day_of_week++) {
 		for (int week = 0; week < nweeks ; week++) {
@@ -537,6 +567,8 @@ wtr_graph(struct database *database, report_options_t options)
 		wprintf(L"\033[31;0m");
 		wprintf(L"\n");
 	}
+
+	print_bottom_months_line(since, last_day);
 
 	print_years_line(since, last_day);
 
