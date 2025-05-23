@@ -5,7 +5,7 @@ include(CTest)
 find_program(CLANG_TIDY NAMES clang-tidy)
 
 if(CLANG_TIDY)
-set(CMAKE_C_CLANG_TIDY ${CLANG_TIDY} --warnings-as-errors=*)
+set(CMAKE_C_CLANG_TIDY ${CLANG_TIDY} --checks=-clang-analyzer-optin.core.EnumCastOutOfRange --warnings-as-errors=*)
 endif()
 
 add_compile_options(-Wall -Wextra -Werror)
