@@ -42,20 +42,21 @@ print_duration(int duration)
 }
 
 static void
-print_months_line(int nweeks, time_t since, time_t until)
+print_months_line(const time_t since, time_t until)
 {
+	time_t week_start = since;
+
 	wprintf(L"    ");
-	for (int week = 0; week < nweeks ; week++) {
-		time_t s = add_week(since, week);
-		time_t u = MIN(add_day(add_week(s, 1), -1), until);
+	while (week_start <= until) {
+		time_t week_stop = MIN(add_day(add_week(week_start, 1), -1), until);
 
-		struct tm tms, tmu;
-		localtime_r(&s, &tms);
-		localtime_r(&u, &tmu);
+		struct tm tm_week_start, tm_week_stop;
+		localtime_r(&week_start, &tm_week_start);
+		localtime_r(&week_stop, &tm_week_stop);
 
-		if (week == 0 || tms.tm_mday == 1 || tmu.tm_mday < tms.tm_mday) {
+		if (week_start == since || tm_week_start.tm_mday == 1 || tm_week_stop.tm_mday < tm_week_start.tm_mday) {
 			char buf[10];
-			strftime(buf, sizeof(buf), "%b", &tmu);
+			strftime(buf, sizeof(buf), "%b", &tm_week_stop);
 
 			if (buf[strlen(buf) - 1] == '.')
 				buf[strlen(buf) - 1] = '\0';
@@ -68,30 +69,34 @@ print_months_line(int nweeks, time_t since, time_t until)
 		} else {
 			wprintf(L"    ");
 		}
+		week_start = add_week(week_start, 1);
 	}
 	wprintf(L"\n");
 }
 
 static void
-print_years_line(int nweeks, time_t since, time_t until)
+print_years_line(const time_t since, time_t until)
 {
+	time_t week_start = since;
+
 	wprintf(L"    ");
-	for (int week = 0; week < nweeks ; week++) {
-		time_t s = add_week(since, week);
-		time_t u = MIN(add_week(s, 1), until);
+	while (week_start <= until) {
+		time_t week_stop = MIN(add_day(add_week(week_start, 1), -1), until);
 
-		struct tm tms, tmu;
-		localtime_r(&s, &tms);
-		localtime_r(&u, &tmu);
+		struct tm tm_week_start, tm_week_stop;
+		localtime_r(&week_start, &tm_week_start);
+		localtime_r(&week_stop, &tm_week_stop);
 
-		if (week == 0 || tms.tm_yday == 0 || (tmu.tm_yday > 0 && tmu.tm_yday < tms.tm_yday)) {
+		if (week_start == since || tm_week_start.tm_yday == 0 || (tm_week_stop.tm_year != tm_week_start.tm_year)) {
+
 			char buf[10];
-			strftime(buf, sizeof(buf), "%Y", &tmu);
+			strftime(buf, sizeof(buf), "%Y", &tm_week_stop);
 
 			wprintf(L"%-4s", buf);
 		} else {
 			wprintf(L"    ");
 		}
+		week_start = add_week(week_start, 1);
 	}
 	wprintf(L"\n");
 }
@@ -458,7 +463,7 @@ wtr_graph(struct database *database, report_options_t options)
 	int max = 0;
 	int total = 0;
 
-	print_months_line(nweeks, since, last_day);
+	print_months_line(since, last_day);
 
 	for (int day_of_week = 0; day_of_week < 7; day_of_week++) {
 		for (int week = 0; week < nweeks ; week++) {
@@ -533,7 +538,7 @@ wtr_graph(struct database *database, report_options_t options)
 		wprintf(L"\n");
 	}
 
-	print_years_line(nweeks, since, last_day);
+	print_years_line(since, last_day);
 
 	for (int i = 5; i < nweeks; i++) {
 		wprintf(L"    ");
