@@ -40,19 +40,19 @@ config_load(struct database *database)
 		return -1;
 	}
 
-	gchar **groups = g_key_file_get_groups(conf_file, &nprojects);
+	gsize total_projects;
 
-	if (nprojects == 0) {
+	gchar **groups = g_key_file_get_groups(conf_file, &total_projects);
+
+	if (total_projects == 0) {
 		warnx("Configuration file %s has no projects", conf_file_path);
 		return -1;
 	}
 
-	free(conf_file_path);
-
-	projects = malloc(sizeof(*projects) * nprojects);
+	projects = malloc(sizeof(*projects) * total_projects);
 
 	gsize valid_projects = 0;
-	for (gsize i = 0; i < nprojects; i++) {
+	for (gsize i = 0; i < total_projects; i++) {
 		gchar *root;
 		if (!(root = g_key_file_get_string(conf_file, groups[i], "root", NULL))) {
 			warnx("Ignoring project \"%s\": no root key", groups[i]);
@@ -75,11 +75,16 @@ config_load(struct database *database)
 
 	nprojects = valid_projects;
 
-	g_strfreev(groups);
+	if (valid_projects == 0) {
+		warnx("Configuration file %s has no valid projects", conf_file_path);
+		return -1;
+	}
 
+	free(conf_file_path);
+	g_strfreev(groups);
 	g_key_file_free(conf_file);
 
-	if (!(projects = realloc(projects, sizeof(*projects) * nprojects))) {
+	if (!(projects = realloc(projects, sizeof(*projects) * valid_projects))) {
 		warn("realloc");
 		return -1;
 	}
