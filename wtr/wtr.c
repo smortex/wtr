@@ -392,7 +392,7 @@ wtr_graph(struct database *database, report_options_t options)
 	time_t last_day = add_day(until, -1);
 
 	int nweeks;
-	for (nweeks = 0; add_week(since, nweeks) < until; nweeks++);
+	for (nweeks = 1; add_week(since, nweeks) < until; nweeks++);
 
 	int *durations;
 	if (!(durations = malloc(7 * nweeks * sizeof(*durations)))) {
