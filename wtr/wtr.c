@@ -647,6 +647,7 @@ wtr_graph(struct database *database, report_options_t options)
 		median = (durations[median_index] + durations[median_index -1]) / 2;
 	}
 
+	wprintf(L"    %d days with activity (out of %d)\n", days - first, days);
 	print_summary_duration(" MAX ", max, min, max);
 	print_summary_duration(" MED ", median, min, max);
 	print_summary_duration(" MIN ", min == INT_MAX ? 0 : min, min, max);
