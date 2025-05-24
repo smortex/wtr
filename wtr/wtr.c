@@ -73,6 +73,31 @@ print_top_months_line(const time_t since, time_t until)
 }
 
 static void
+print_duration_color(int duration, int min, int max)
+{
+	if (duration > 0) {
+		float relative_ratio;
+
+		if (min == max)
+			relative_ratio = 0.0;
+		else
+			relative_ratio = 1.0 - (float) (duration - min) / (max - min);
+		int red = relative_ratio * (155 - 33) + 33;
+		int green = relative_ratio * (233 - 110) + 110;
+		int blue = relative_ratio * (168 - 57) + 57;
+		wprintf(L"\033[48;2;%d;%d;%dm", red, green, blue);
+		if (red + green + blue > 255 * 1.5) {
+			wprintf(L"\033[38;2;101;109;118m");
+		} else {
+			wprintf(L"\033[38;2;235;237;240m");
+		}
+	} else {
+		wprintf(L"\033[48;2;235;237;240m");
+		wprintf(L"\033[38;2;101;109;118m");
+	}
+}
+
+static void
 print_graph(const time_t since, time_t until, int *durations, int min, int max, int offset)
 {
 	time_t graph_since = beginning_of_week(since);
@@ -108,29 +133,9 @@ print_graph(const time_t since, time_t until, int *durations, int min, int max, 
 				wprintf(L"    ");
 			} else {
 				struct tm* day = localtime(&t);
-				int duration = durations[week * 7 + day_of_week];
-				duration = durations[(int) (offset + difftime(t, since)) / (3600*24)];
+				int duration = durations[(int) (offset + difftime(t, since)) / (3600*24)];
 
-				if (duration > 0) {
-					float relative_ratio;
-
-					if (min == max)
-						relative_ratio = 0.0;
-					else
-						relative_ratio = 1.0 - (float) (duration - min) / (max - min);
-					int red = relative_ratio * (155 - 33) + 33;
-					int green = relative_ratio * (233 - 110) + 110;
-					int blue = relative_ratio * (168 - 57) + 57;
-					wprintf(L"\033[48;2;%d;%d;%dm", red, green, blue);
-					if (red + green + blue > 255 * 1.5) {
-						wprintf(L"\033[38;2;101;109;118m");
-					} else {
-						wprintf(L"\033[38;2;235;237;240m");
-					}
-				} else {
-					wprintf(L"\033[48;2;235;237;240m");
-					wprintf(L"\033[38;2;101;109;118m");
-				}
+				print_duration_color(duration, min, max);
 
 				wprintf(L" %2d ", day->tm_mday);
 			}
@@ -199,6 +204,20 @@ print_years_line(const time_t since, const time_t until)
 		}
 		week_start = add_week(week_start, 1);
 	}
+	wprintf(L"\n");
+}
+
+static void
+print_summary_duration(const char *label, int duration, int min, int max)
+{
+	wprintf(L"    ");
+	if (min < max)
+		print_duration_color(duration, min, max);
+	wprintf(L"%s", label);
+	if (min < max)
+		wprintf(L"\033[0m");
+	wprintf(L" ", label);
+	print_duration(duration);
 	wprintf(L"\n");
 }
 
@@ -507,6 +526,12 @@ terminal_width(void)
 #endif
 }
 
+int
+cmp_int(const void *a, const void *b)
+{
+	return *(int *)a - *(int *)b;
+}
+
 void
 wtr_graph(struct database *database, report_options_t options)
 {
@@ -564,7 +589,7 @@ wtr_graph(struct database *database, report_options_t options)
 	for (int day_of_week = 0; day_of_week < 7; day_of_week++) {
 		for (int week = 0; week < nweeks ; week++) {
 			time_t t = add_week(add_day(since, day_of_week), week);
-			if (t < options.since || t >= until) {
+			if (t < since || t >= until) {
 				durations[week * 7 + day_of_week] = 0;
 			} else {
 				int duration = database_get_duration(database, t, add_day(t, 1), sql_filter->str);
@@ -600,17 +625,32 @@ wtr_graph(struct database *database, report_options_t options)
 		start = stop;
 	}
 
-	wprintf(L"    \033[48;2;%d;%d;%dm\033[38;2;235;237;240m MAX \033[0m ", 33, 110, 57);
-	print_duration(max);
-	wprintf(L"\n");
+	int days = difftime(until, since) / (3600 * 24);
 
-	wprintf(L"    \033[48;2;%d;%d;%dm\033[38;2;101;109;118m MIN \033[0m ", 155, 233, 168);
-	print_duration(min == INT_MAX ? 0 : min);
-	wprintf(L"\n");
+	qsort(durations, days, sizeof(int), cmp_int);
 
-	wprintf(L"    TOTAL ");
-	print_duration(total);
-	wprintf(L"\n");
+	int first = 0;
+
+	for (int i = 0; i < days; i++) {
+		if (durations[i]) {
+			first = i;
+			break;
+		}
+	}
+
+	int median_index = first + (days - first) / 2;
+	int median;
+
+	if ((days - first) % 2 == 1) {
+		median = durations[median_index];
+	} else {
+		median = (durations[median_index] + durations[median_index -1]) / 2;
+	}
+
+	print_summary_duration(" MAX ", max, min, max);
+	print_summary_duration(" MED ", median, min, max);
+	print_summary_duration(" MIN ", min == INT_MAX ? 0 : min, min, max);
+	print_summary_duration("TOTAL", total, 0, 0);
 
 	g_string_free(sql_filter, TRUE);
 	free(durations);
