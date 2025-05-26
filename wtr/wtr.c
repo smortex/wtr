@@ -538,14 +538,15 @@ wtr_graph(struct database *database, report_options_t options)
 	time_t since = options.since;
 	time_t until = options.until;
 
-	if (!since) {
-		int weeks = (terminal_width() - 4) / 4 - 1;
-		/*                              |    |   `--- current week
-		 *                              |    `------- width of a day
-		 *                              `------------ length of header
-		 */
+	int screen_max_weeks = (terminal_width() - 4) / 4;
+	/*                                         |    `------- width of a day
+	 *                                         `------------ length of header
+	 */
 
-		since = beginning_of_week(add_week(today(), -weeks));
+	if (!since) {
+		since = add_week(beginning_of_week(today()), 1 - screen_max_weeks);
+	/*                                                   `--- current week
+         */
 	}
 
 	if (!until) {
@@ -613,11 +614,18 @@ wtr_graph(struct database *database, report_options_t options)
 		else
 			stop = until;
 
-		print_top_months_line(start, stop);
-		print_graph(start, stop, durations, min, max, difftime(start, since));
-		print_bottom_months_line(start, stop);
-		print_years_line(start, stop);
-		wprintf(L"\n");
+		while (start < stop) {
+			time_t page_stop = MIN(stop, add_week(beginning_of_week(start), screen_max_weeks));
+
+			print_top_months_line(start, page_stop);
+			print_graph(start, page_stop, durations, min, max, difftime(start, since));
+			print_bottom_months_line(start, page_stop);
+			print_years_line(start, page_stop);
+			wprintf(L"\n");
+
+
+			start = page_stop;
+		}
 
 		if (!options.next)
 			break;
