@@ -64,10 +64,14 @@ config_load(struct database *database)
 			continue;
 		}
 
+		gchar **tags;
+		tags = g_key_file_get_string_list(conf_file, groups[i], "tags", NULL, NULL);
+
 		projects[valid_projects].id = database_project_find_or_create_by_name(database, groups[i]);
 		projects[valid_projects].name = g_strdup(groups[i]);
 		projects[valid_projects].root = realpath(root, NULL);
 		projects[valid_projects].active = 0;
+		projects[valid_projects].tags = tags;
 		valid_projects++;
 
 		free(root);
@@ -93,6 +97,7 @@ config_free(void)
 	for (gsize i = 0; i < nprojects; i++) {
 		free(projects[i].name);
 		free(projects[i].root);
+		g_strfreev(projects[i].tags);
 	}
 	free(projects);
 }

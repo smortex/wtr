@@ -1,6 +1,7 @@
 %{
 #include <err.h>
 #include <stdio.h>
+#include <stdbool.h>
 #include <time.h>
 
 #include "wtr.h"
@@ -24,65 +25,63 @@ struct {
 
 report_options_t combine_report_parts(report_options_t a, report_options_t b);
 
-id_list_t *
-id_list_new(struct database *database, char *what, int (*find_callback)(struct database *database, const char *name), const char *name)
+GList *
+add_host_by_name(struct database *database, GList *list, const char *name)
 {
-    id_list_t *head;
-    if (!(head = malloc(sizeof(*head))))
-	return head;
+    bool found = false;
 
-    head->id = find_callback(database, name);
-    head->next = NULL;
-
-    if (head->id < 0)
-	errx(EXIT_FAILURE, "unknown %s: %s", what, name);
-
-    return head;
-}
-
-id_list_t *
-id_list_add(struct database *database, id_list_t *head, char *what, int (*find_callback)(struct database *database, const char *name), const char *name)
-{
-    id_list_t *tail = head;
-
-    while (tail->next)
-	tail = tail->next;
-
-    if (!(tail->next = malloc(sizeof(*head))))
-	return NULL;
-
-    tail = tail->next;
-    tail->id = find_callback(database, name);
-    tail->next = NULL;
-
-    if (tail->id < 0)
-	errx(EXIT_FAILURE, "unknown %s: %s", what, name);
-
-    return tail;
-}
-
-void
-id_list_free(id_list_t *head)
-{
-    id_list_t *next;
-    while (head) {
-	next = head->next;
-	free(head);
-	head = next;
+    int id = database_host_find_by_name(database, name);
+    if (id >= 0) {
+	list = g_list_append(list, GINT_TO_POINTER(id));
+	found = true;
     }
+
+    if (!found) {
+	errx(EXIT_FAILURE, "%s: no such host", name);
+    }
+
+    return list;
+}
+
+GList *
+add_project_by_name(GList *list, const char *name)
+{
+    bool found = false;
+
+    if (name[0] == '+') {
+	for (size_t i = 0; i < nprojects; i++) {
+	    if (projects[i].tags && g_strv_contains((const gchar *const*)projects[i].tags, name + 1)) {
+		list = g_list_append(list, GINT_TO_POINTER(projects[i].id));
+		found = true;
+	    }
+	}
+    } else {
+	for (size_t i = 0; i < nprojects; i++) {
+	    if (strcmp(projects[i].name, name) == 0) {
+		list = g_list_append(list, GINT_TO_POINTER(projects[i].id));
+		found = true;
+		break;
+	    }
+	}
+    }
+
+    if (!found) {
+	errx(EXIT_FAILURE, "%s: no such project", name);
+    }
+
+    return list;
 }
 
 void
-id_list_print(FILE *io, id_list_t *head)
+g_list_print(FILE *io, GList *list)
 {
-    id_list_t *next;
     fprintf(io, "(");
-    while (head) {
-	next = head->next;
-	fprintf(io, "%d", head->id);
-	if (next)
+    while (list) {
+	fprintf(io, "%d", GPOINTER_TO_INT(list->data));
+	if (list->next) {
 	    fprintf(io, ", ");
-	head = next;
+	}
+	list = list->next;
     }
     fprintf(io, ")");
 }
@@ -112,13 +111,13 @@ report_options_t empty_options;
     fprintf(yyo, " until=");
     time_print(yyo, $$.until);
     fprintf(yyo, " rounding=%d projects=", $$.rounding);
-    id_list_print(yyo, $$.projects);
+    g_list_print(yyo, $$.projects);
     fprintf(yyo, " hosts=");
-    id_list_print(yyo, $$.hosts);
+    g_list_print(yyo, $$.hosts);
 } <report_options>;
 %printer {
     fprintf(yyo, "<%p> ", $$);
-    id_list_print(yyo, $$);
+    g_list_print(yyo, $$);
 } <projects> <hosts>;
 
 %union {
@@ -127,8 +126,8 @@ report_options_t empty_options;
     char *string;
     time_unit_t time_unit;
     report_options_t report_options;
-    id_list_t *projects;
-    id_list_t *hosts;
+    GList *projects;
+    GList *hosts;
 }
 
 %start command
@@ -159,8 +158,8 @@ report_options_t empty_options;
 %parse-param {struct database *database}
 
 %destructor { free($$); } <string>
-%destructor { id_list_free($$); } <projects> <hosts>
-%destructor { id_list_free($$.hosts); id_list_free($$.projects); } <report_options>
+%destructor { g_list_free($$); } <projects> <hosts>
+%destructor { g_list_free($$.hosts); g_list_free($$.projects); } <report_options>
 
 %%
 
@@ -172,9 +171,9 @@ command: ACTIVE YYEOF { wtr_active(); }
        | REMOVE duration FROM IDENTIFIER YYEOF { wtr_add_duration_to_project_on(database, - $2, $4, today()); free($4); }
        | ADD duration TO IDENTIFIER moment YYEOF { wtr_add_duration_to_project_on(database, $2, $4, $5.since); free($4); }
        | REMOVE duration FROM IDENTIFIER moment YYEOF { wtr_add_duration_to_project_on(database, - $2, $4, $5.since); free($4); }
-       | report YYEOF {  wtr_report(database, $1); id_list_free($1.projects); id_list_free($1.hosts); }
+       | report YYEOF {  wtr_report(database, $1); g_list_free($1.projects); g_list_free($1.hosts); }
        | GRAPH YYEOF { wtr_graph(database, empty_options); }
-       | GRAPH graph_options YYEOF { wtr_graph(database, $2); id_list_free($2.projects); id_list_free($2.hosts); }
+       | GRAPH graph_options YYEOF { wtr_graph(database, $2); g_list_free($2.projects); g_list_free($2.hosts); }
        | MERGE IDENTIFIER YYEOF { wtr_merge(database, $2); free($2); }
        | MERGE IDENTIFIER INTO IDENTIFIER YYEOF { wtr_merge_project(database, $2, $4); free($2); free($4); }
        ;
@@ -188,7 +187,7 @@ report_part: time_span { $$ = $1; }
 	   | ROUNDING DURATION { $$ = empty_options; $$.rounding = $2; }
 	   | ON projects { $$ = empty_options; $$.projects = $2; }
 	   | ON host hosts { $$ = empty_options; $$.hosts = $3; }
-	   | ON THIS HOST { $$ = empty_options; $$.hosts = id_list_new(database, "host", database_host_find_by_name, short_hostname()); }
+	   | ON THIS HOST { $$ = empty_options; $$.hosts = add_host_by_name(database, NULL, short_hostname()); }
 	   ;
 
 graph_options: graph_options graph_part { $$ = combine_report_parts($1, $2); }
@@ -199,7 +198,7 @@ graph_part: time_span { $$ = $1; }
 	  | BY time_unit { $$ = empty_options; $$.next = time_unit_functions[$2].add; }
 	  | ON projects { $$ = empty_options; $$.projects = $2; }
 	  | ON host hosts { $$ = empty_options; $$.hosts = $3; }
-	  | ON THIS HOST { $$ = empty_options; $$.hosts = id_list_new(database, "host", database_host_find_by_name, short_hostname()); }
+	  | ON THIS HOST { $$ = empty_options; $$.hosts = add_host_by_name(database, NULL, short_hostname()); }
 	  ;
 
 host: HOSTS
@@ -239,12 +238,12 @@ time_unit: DAY { $$ = 0; }
 	 | YEAR { $$ = 4; }
 	 ;
 
-projects: projects IDENTIFIER { id_list_add(database, $1, "project", database_project_find_by_name, $2); $$ = $1; free($2); }
-	| IDENTIFIER { $$ = id_list_new(database, "project", database_project_find_by_name, $1); free($1); }
+projects: projects IDENTIFIER { $$ = add_project_by_name($1, $2); free($2); }
+	| IDENTIFIER { $$ = add_project_by_name(NULL, $1); free($1); }
 	;
 
-hosts: hosts IDENTIFIER { id_list_add(database, $1, "host", database_host_find_by_name, $2); $$ = $1; free($2); }
-     | IDENTIFIER { $$ = id_list_new(database, "host", database_host_find_by_name, $1); free($1); }
+hosts: hosts IDENTIFIER { $$ = add_host_by_name(database, $1, $2); free($2); }
+     | IDENTIFIER { $$ = add_host_by_name(database, NULL, $1); free($1); }
      ;
 
 %%

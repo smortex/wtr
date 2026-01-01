@@ -3,6 +3,8 @@
 
 #include <stdlib.h>
 
+#include <glib.h>
+
 #include "database.h"
 
 char		*config_file_path(void);
@@ -15,6 +17,7 @@ struct project {
 	char *name;
 	char *root;
 	int active;
+	gchar **tags;
 };
 
 extern struct project *projects;

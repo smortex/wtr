@@ -449,8 +449,8 @@ wtr_report(struct database *database, report_options_t options)
 	GString *project_sql_filter = g_string_new(NULL);
 	if (options.projects) {
 		g_string_append(project_sql_filter, " WHERE projects.id IN (");
-		for (id_list_t *item = options.projects; item; item = item->next) {
-			g_string_append_printf(project_sql_filter, "%d", item->id);
+		for (GList *item = options.projects; item; item = item->next) {
+			g_string_append_printf(project_sql_filter, "%d", GPOINTER_TO_INT(item->data));
 			if (item->next)
 				g_string_append(project_sql_filter, ", ");
 		}
@@ -460,8 +460,8 @@ wtr_report(struct database *database, report_options_t options)
 	GString *host_sql_filter = g_string_new(NULL);
 	if (options.hosts) {
 		g_string_append(host_sql_filter, " AND host_id IN (");
-		for (id_list_t *item = options.hosts; item; item = item->next) {
-			g_string_append_printf(host_sql_filter, "%d", item->id);
+		for (GList *item = options.hosts; item; item = item->next) {
+			g_string_append_printf(host_sql_filter, "%d", GPOINTER_TO_INT(item->data));
 			if (item->next)
 				g_string_append(host_sql_filter, ", ");
 		}
@@ -557,8 +557,8 @@ wtr_graph(struct database *database, report_options_t options)
 	GString *sql_filter = g_string_new(NULL);
 	if (options.projects) {
 		g_string_append(sql_filter, " AND project_id IN (");
-		for (id_list_t *item = options.projects; item; item = item->next) {
-			g_string_append_printf(sql_filter, "%d", item->id);
+		for (GList *item = options.projects; item; item = item->next) {
+			g_string_append_printf(sql_filter, "%d", GPOINTER_TO_INT(item->data));
 			if (item->next)
 				g_string_append(sql_filter, ", ");
 		}
@@ -567,8 +567,8 @@ wtr_graph(struct database *database, report_options_t options)
 
 	if (options.hosts) {
 		g_string_append(sql_filter, " AND host_id IN (");
-		for (id_list_t *item = options.hosts; item; item = item->next) {
-			g_string_append_printf(sql_filter, "%d", item->id);
+		for (GList *item = options.hosts; item; item = item->next) {
+			g_string_append_printf(sql_filter, "%d", GPOINTER_TO_INT(item->data));
 			if (item->next)
 				g_string_append(sql_filter, ", ");
 		}
