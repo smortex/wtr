@@ -36,6 +36,52 @@ read_single_integer(void *result, int argc, char **argv, char **column_name)
 	return 0;
 }
 
+static int
+read_single_string(void *r, int argc, char **argv, char **column_name)
+{
+	(void) argc;
+	(void) column_name;
+
+	char **result = r;
+	*result = strdup(argv[0]);
+
+	return 0;
+}
+
+static int
+read_single_time_t(void *r, int argc, char **argv, char **column_name)
+{
+	(void) column_name;
+
+	time_t *result = r;
+
+	if (argc == 1 && argv[0]) {
+		*result = strtol(argv[0], NULL, 10);
+	}
+	return 0;
+}
+
+struct merged_project_info {
+	char *old_project_name;
+	char *new_project_name;
+	time_t created_at;
+};
+
+static int
+read_merged_project_info(void *result, int argc, char **argv, char **column_name)
+{
+	(void) argc;
+	(void) column_name;
+
+	struct merged_project_info *info = result;
+
+	info->old_project_name = strdup(argv[0]);
+	info->new_project_name = strdup(argv[1]);
+	info->created_at = strtol(argv[2], NULL, 10);
+
+	return 0;
+}
+
 void
 insert_current_host(struct database *database)
 {
@@ -66,7 +112,7 @@ struct migration {
 	{ 0, "202307031336", "INSERT INTO new_activity SELECT *, 1 FROM activity", NULL },
 	{ 0, "202307031337", "DROP TABLE activity", NULL },
 	{ 0, "202307031338", "ALTER TABLE new_activity RENAME TO activity", NULL },
-
+	{ 0, "202512311243", "CREATE TABLE merged_projects (old_project_name VARCHAR(255) PRIMARY KEY NOT NULL, new_project_name VARCHAR(255) NOT NULL, created_at INTEGER)", NULL },
 };
 
 gchar *
@@ -117,6 +163,20 @@ database_open(char *filename)
 	}
 
 	database_migrate(res);
+
+	return res;
+}
+
+char *
+database_version(struct database *database)
+{
+	char *res;
+
+	char *errmsg;
+	if (sqlite3_exec(database->db, "SELECT MAX(migration) FROM information_schema", read_single_string, &res, &errmsg) != SQLITE_OK) {
+		errx(EXIT_FAILURE, "%s", errmsg);
+		/* NOTREACHED */
+	}
 
 	return res;
 }
@@ -268,6 +328,36 @@ database_project_find_by_name(struct database *database, const char *project)
 		errx(EXIT_FAILURE, "%s", errmsg);
 		/* NOTREACHED */
 	}
+
+	if (id < 0) {
+		if (asprintf(&sql, "SELECT old_project_name, new_project_name, created_at FROM merged_projects WHERE old_project_name = '%s'", project) < 0) {
+			err(EXIT_FAILURE, "asprintf");
+			/* NOTREACHED */
+		}
+		struct merged_project_info info = {
+			.old_project_name = NULL,
+			.new_project_name = NULL,
+			.created_at = 0,
+		};
+
+		if (sqlite3_exec(database->db, sql, read_merged_project_info, &info, &errmsg) != SQLITE_OK) {
+			errx(EXIT_FAILURE, "%s", errmsg);
+			/* NOTREACHED */
+		}
+
+		if (info.old_project_name) {
+			char date[BUFSIZ];
+
+			strftime(date, sizeof(date), "%FT%T%z", localtime(&info.created_at));
+			warnx("Project %s was merged into %s on %s.  You should remove it from your configuration.", info.old_project_name, info.new_project_name, date);
+
+			free(info.old_project_name);
+			free(info.new_project_name);
+
+			id = database_project_find_by_name(database, info.new_project_name);
+		}
+	}
+
 	free(sql);
 
 	return id;
@@ -470,9 +560,61 @@ merge_host(void *result, int argc, char **argv, char **column_name)
 	return 0;
 }
 
+static int
+merge_merged_projects(void *result, int argc, char **argv, char **column_name)
+{
+	(void) argc;
+	(void) column_name;
+
+	struct import *si = result;
+
+	char *sql;
+	char *errmsg;
+
+	if (asprintf(&sql, "SELECT created_at FROM merged_projects WHERE old_project_name = '%s'", argv[0]) < 0) {
+		err(EXIT_FAILURE, "asprintf");
+		/* NOTREACHED */
+	}
+
+	time_t created_at = -1;
+
+	if (sqlite3_exec(si->target->db, sql, read_single_time_t, &created_at, &errmsg) != SQLITE_OK) {
+		errx(EXIT_FAILURE, "%s", errmsg);
+		/* NOTREACHED */
+	}
+	
+	if (created_at < 0) {
+		if (asprintf(&sql, "INSERT INTO merged_projects (old_project_name, new_project_name, created_at) VALUES ('%s', '%s', %s)", argv[0], argv[1], argv[2]) < 0) {
+			err(EXIT_FAILURE, "asprintf");
+			/* NOTREACHED */
+		}
+
+		if (sqlite3_exec(si->target->db, sql, NULL, NULL, &errmsg) != SQLITE_OK) {
+			errx(EXIT_FAILURE, "%s", errmsg);
+			/* NOTREACHED */
+		}
+	} else if (created_at != strtol(argv[2], NULL, 10)) {
+		errx(EXIT_FAILURE, "%s: conflicting merge date: %s (import database), %ld (target database)", argv[0], argv[2], created_at);
+	}
+
+	free(sql);
+
+	return 0;
+}
+
 void
 database_merge(struct database *database, struct database *import)
 {
+	char *target_version = database_version(database);
+	char *import_version = database_version(import);
+
+	if (strcmp(target_version, import_version) != 0) {
+		errx(EXIT_FAILURE, "database version mismatch: %s (target database), %s (import database)", target_version, import_version);
+	}
+
+	free(target_version);
+	free(import_version);
+
 	struct import si = {
 		.target = database,
 		.import = import,
@@ -488,6 +630,70 @@ database_merge(struct database *database, struct database *import)
 		errx(EXIT_FAILURE, "%s", errmsg);
 		/* NOTREACHED */
 	}
+
+	if (sqlite3_exec(import->db, "SELECT old_project_name, new_project_name, created_at FROM merged_projects", merge_merged_projects, &si, &errmsg) != SQLITE_OK) {
+		errx(EXIT_FAILURE, "%s", errmsg);
+		/* NOTREACHED */
+	}
+
+	if (sqlite3_exec(database->db, "COMMIT", NULL, 0, &errmsg) != SQLITE_OK) {
+		errx(EXIT_FAILURE, "%s", errmsg);
+		/* NOTREACHED */
+	}
+}
+
+void
+database_merge_project(struct database *database, const char *old_project_name, const char *new_project_name)
+{
+	int old_project_id = database_project_find_by_name(database, old_project_name);
+	if (old_project_id < 0) {
+		errx(EXIT_FAILURE, "%s: no such project", old_project_name);
+	}
+
+	int new_project_id = database_project_find_by_name(database, new_project_name);
+	if (new_project_id < 0) {
+		errx(EXIT_FAILURE, "%s: no such project", new_project_name);
+	}
+
+	char *errmsg;
+	if (sqlite3_exec(database->db, "BEGIN TRANSACTION", NULL, 0, &errmsg) != SQLITE_OK) {
+		errx(EXIT_FAILURE, "%s", errmsg);
+		/* NOTREACHED */
+	}
+
+	char *sql;
+	if (asprintf(&sql, "UPDATE activity SET project_id = %d WHERE project_id = %d", new_project_id, old_project_id) < 0) {
+		err(EXIT_FAILURE, "asprintf");
+		/* NOTREACHED */
+	}
+
+	if (sqlite3_exec(database->db, sql, NULL, 0, &errmsg) != SQLITE_OK) {
+		errx(EXIT_FAILURE, "%s", errmsg);
+		/* NOTREACHED */
+	}
+	free(sql);
+
+	if (asprintf(&sql, "DELETE FROM projects WHERE id = %d", old_project_id) < 0) {
+		err(EXIT_FAILURE, "asprintf");
+		/* NOTREACHED */
+	}
+
+	if (sqlite3_exec(database->db, sql, NULL, 0, &errmsg) != SQLITE_OK) {
+		errx(EXIT_FAILURE, "%s", errmsg);
+		/* NOTREACHED */
+	}
+	free(sql);
+
+	if (asprintf(&sql, "INSERT INTO merged_projects (old_project_name, new_project_name, created_at) VALUES ('%s', '%s', %ld)", old_project_name, new_project_name, time(NULL)) < 0) {
+		err(EXIT_FAILURE, "asprintf");
+		/* NOTREACHED */
+	}
+
+	if (sqlite3_exec(database->db, sql, NULL, 0, &errmsg) != SQLITE_OK) {
+		errx(EXIT_FAILURE, "%s", errmsg);
+		/* NOTREACHED */
+	}
+	free(sql);
 
 	if (sqlite3_exec(database->db, "COMMIT", NULL, 0, &errmsg) != SQLITE_OK) {
 		errx(EXIT_FAILURE, "%s", errmsg);
