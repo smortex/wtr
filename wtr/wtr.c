@@ -340,7 +340,7 @@ wtr_add_duration_to_project_on(struct database *database, int duration, const ch
 {
 	int project_id = database_project_find_by_name(database, project);
 	if (project_id < 0) {
-		errx(EXIT_FAILURE, "unknown project: %s", project);
+		errx(EXIT_FAILURE, "%s: no such project", project);
 	}
 	database_project_add_duration(database, project_id, date, duration);
 }
