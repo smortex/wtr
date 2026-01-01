@@ -19,9 +19,11 @@ jobs:
     - name: Update apt repository
       run: sudo apt-get update
     - name: Install build dependencies
-      run: sudo apt-get install -y libbsd-dev libglib2.0-dev
+      run: sudo apt-get install -y astyle libbsd-dev libglib2.0-dev
     - name: Configure CMake
       run: cmake -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}}
+    - name: Check style
+      run: cmake --build ${{github.workspace}}/build --target style && git diff --exit-code
     - name: Build
       run: cmake --build ${{github.workspace}}/build --config ${{env.BUILD_TYPE}}
     - name: Test

@@ -8,20 +8,20 @@
 #include "../libwtr/database.h"
 
 typedef struct {
-    int day;
-    int week;
-    int month;
-    int quarter;
-    int year;
+	int day;
+	int week;
+	int month;
+	int quarter;
+	int year;
 } time_unit_t;
 
 typedef struct {
-    time_t since;
-    time_t until;
-    time_t (*next)(time_t, int);
-    int rounding;
-    GList *projects;
-    GList *hosts;
+	time_t since;
+	time_t until;
+	time_t (*next)(time_t, int);
+	int rounding;
+	GList *projects;
+	GList *hosts;
 } report_options_t;
 
 void		 wtr_active(void);
