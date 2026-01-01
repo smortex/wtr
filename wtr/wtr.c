@@ -1,6 +1,6 @@
 #include <sys/param.h>
 #if defined(__linux__)
-#  include <sys/ioctl.h>
+	#include <sys/ioctl.h>
 #endif
 #include <sys/wait.h>
 
@@ -262,15 +262,15 @@ main(int argc, char *argv[])
 			}
 
 			fprintf(f, "# Define one section per project, and set the \"root\" key to the path or its\n"
-				   "# root directory.\n"
-				   "# Lines starting with a '#' are comments.\n"
-				   "#\n"
-				   "# Examples:\n"
-				   "# [Acme Corporation]\n"
-				   "# root = /home/wile/Projects/ACME\n"
-				   "#\n"
-				   "# [Fast and Furry-ous]\n"
-				   "# root = /nfs/movies/E01\n");
+			        "# root directory.\n"
+			        "# Lines starting with a '#' are comments.\n"
+			        "#\n"
+			        "# Examples:\n"
+			        "# [Acme Corporation]\n"
+			        "# root = /home/wile/Projects/ACME\n"
+			        "#\n"
+			        "# [Fast and Furry-ous]\n"
+			        "# root = /nfs/movies/E01\n");
 
 			fclose(f);
 			wtr_edit();
@@ -545,8 +545,8 @@ wtr_graph(struct database *database, report_options_t options)
 
 	if (!since) {
 		since = add_week(beginning_of_week(today()), 1 - screen_max_weeks);
-	/*                                                   `--- current week
-         */
+		/*                                                   `--- current week
+		     */
 	}
 
 	if (!until) {

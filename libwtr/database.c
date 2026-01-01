@@ -136,8 +136,8 @@ database_open(char *filename)
 {
 	struct database *res;
 	if (!(res = malloc(sizeof(*res)))) {
-	    warn("Cannot allocate memory");
-	    return NULL;
+		warn("Cannot allocate memory");
+		return NULL;
 	}
 
 	if (sqlite3_open(filename, &res->db) != SQLITE_OK) {
@@ -240,10 +240,10 @@ database_migrate(struct database *database)
 				/* NOTREACHED */
 			}
 			if (migrations[i].sql) {
-			if (sqlite3_exec(database->db, migrations[i].sql, NULL, 0, &errmsg) != SQLITE_OK) {
-				errx(EXIT_FAILURE, "%s", errmsg);
-				/* NOTREACHED */
-			}
+				if (sqlite3_exec(database->db, migrations[i].sql, NULL, 0, &errmsg) != SQLITE_OK) {
+					errx(EXIT_FAILURE, "%s", errmsg);
+					/* NOTREACHED */
+				}
 			}
 			if (migrations[i].callback) {
 				migrations[i].callback(database);
@@ -582,7 +582,7 @@ merge_merged_projects(void *result, int argc, char **argv, char **column_name)
 		errx(EXIT_FAILURE, "%s", errmsg);
 		/* NOTREACHED */
 	}
-	
+
 	if (created_at < 0) {
 		if (asprintf(&sql, "INSERT INTO merged_projects (old_project_name, new_project_name, created_at) VALUES ('%s', '%s', %s)", argv[0], argv[1], argv[2]) < 0) {
 			err(EXIT_FAILURE, "asprintf");
