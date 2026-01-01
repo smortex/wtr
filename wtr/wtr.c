@@ -679,3 +679,15 @@ wtr_merge(struct database *database, char *filename)
 
 	database_close(import);
 }
+
+void
+wtr_merge_project(struct database *database, const char *old_project_name, const char *new_project_name)
+{
+	for (size_t i = 0; i < nprojects; i++) {
+		if (strcmp(projects[i].name, old_project_name) == 0) {
+			errx(EXIT_FAILURE, "project %s must be removed from your configuration file first", old_project_name);
+		}
+	}
+
+	database_merge_project(database, old_project_name, new_project_name);
+}

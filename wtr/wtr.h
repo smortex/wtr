@@ -40,5 +40,6 @@ void		 wtr_report(struct database *database, report_options_t options);
 void		 wtr_graph(struct database *database, report_options_t options);
 void		 wtr_graph_auto(struct database *database);
 void		 wtr_merge(struct database *database, char *filename);
+void		 wtr_merge_project(struct database *database, const char *old_project_name, const char *new_project_name);
 
 #endif

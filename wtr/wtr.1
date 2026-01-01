@@ -36,6 +36,11 @@
 .Nm
 .Cm merge
 .Ar filename
+.Nm
+.Cm merge
+.Ar old-project-name
+.Cm into
+.Ar new-project-name
 .Sh DESCRIPTION
 The
 .Nm
@@ -94,7 +99,17 @@ Show a visual representation of the time spent on projects in a calendar.
 .It Cd merge
 Merge the time spent on projects in the
 .Ar filename
-database. Useful to track your working time on multiple nodes.
+database into the current database.
+Useful when you track your working time on multiple nodes.
+Can also be used to merge projects that have a different name but are actualy the same.
+Time spend on
+.Ar old-project-name
+is added to
+.Ar new-project-name ,
+and future use of
+.Ar old-project-name
+is replaced by
+.Ar new-project-name .
 .El
 .Sh REPORTS
 Multiple reports syntax are accepted:

@@ -11,6 +11,7 @@ void		 database_close(struct database *db);
 
 int		 database_longuest_project_name(struct database *db);
 void		 database_merge(struct database *db, struct database *import);
+void		 database_merge_project(struct database *database, const char *old_project, const char *new_project);
 int		 database_host_find_by_name(struct database *db, const char *project);
 int		 database_host_find_or_create_by_name(struct database *db, const char *project);
 void		 database_list_hosts(struct database *database, void (*callback)(char *host));

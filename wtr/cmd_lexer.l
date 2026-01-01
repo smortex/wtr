@@ -39,6 +39,7 @@ hosts				{ return HOSTS; }
 projects			{ return PROJECTS; }
 graph				{ return GRAPH; }
 merge				{ return MERGE; }
+into				{ return INTO; }
 days?				{ yylval.time_unit = (time_unit_t){1, 0, 0, 0, 0}; return DAY; }
 weeks?				{ yylval.time_unit = (time_unit_t){0, 1, 0, 0, 0}; return WEEK; }
 months?				{ yylval.time_unit = (time_unit_t){0, 0, 1, 0, 0}; return MONTH; }
