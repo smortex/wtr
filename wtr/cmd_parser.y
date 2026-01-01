@@ -44,7 +44,7 @@ add_host_by_name(struct database *database, GList *list, const char *name)
 }
 
 GList *
-add_project_by_name(GList *list, const char *name)
+add_project_by_name(struct database *database, GList *list, const char *name)
 {
     bool found = false;
 
@@ -56,12 +56,10 @@ add_project_by_name(GList *list, const char *name)
 	    }
 	}
     } else {
-	for (size_t i = 0; i < nprojects; i++) {
-	    if (strcmp(projects[i].name, name) == 0) {
-		list = g_list_append(list, GINT_TO_POINTER(projects[i].id));
+	int id = database_project_find_by_name(database, name);
+	if (id >= 0) {
+		list = g_list_append(list, GINT_TO_POINTER(id));
 		found = true;
-		break;
-	    }
 	}
     }
 
@@ -238,8 +236,8 @@ time_unit: DAY { $$ = 0; }
 	 | YEAR { $$ = 4; }
 	 ;
 
-projects: projects IDENTIFIER { $$ = add_project_by_name($1, $2); free($2); }
-	| IDENTIFIER { $$ = add_project_by_name(NULL, $1); free($1); }
+projects: projects IDENTIFIER { $$ = add_project_by_name(database, $1, $2); free($2); }
+	| IDENTIFIER { $$ = add_project_by_name(database, NULL, $1); free($1); }
 	;
 
 hosts: hosts IDENTIFIER { $$ = add_host_by_name(database, $1, $2); free($2); }
