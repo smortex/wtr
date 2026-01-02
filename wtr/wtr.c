@@ -428,13 +428,96 @@ report_project_duration(const char *project, int duration, void *user_data)
 	}
 }
 
+static int
+report_period(struct database *database, report_options_t options, time_t since, time_t until, wchar_t *wformat_string, int longest_name, char *project_sql_filter, char *host_sql_filter)
+{
+	time_t stop = until;
+
+	if (options.next) {
+		stop = MIN(until, options.next(since, 1));
+	}
+
+	char ssince[BUFSIZ], sstop[BUFSIZ];
+	strftime(ssince, BUFSIZ, "%F", localtime(&since));
+	strftime(sstop, BUFSIZ, "%F", localtime(&stop));
+	wprintf(L"wtr since %s until %s\n\n", ssince, sstop);
+
+	time_t now = time(0);
+	int current = since <= now && now < stop;
+
+	struct report_project_duration_data data = {
+		.wformat_string = wformat_string,
+		.current = current,
+	};
+	int total_duration = 0;
+	total_duration = database_get_duration_by_project(database, since, stop, project_sql_filter, host_sql_filter, report_project_duration, &data);
+
+	wprintf(L"    ");
+	for (int i = 0; i < longest_name + 18; i++) {
+		wprintf(L"-");
+	}
+	wprintf(L"\n");
+	wprintf(wformat_string, "Total");
+	print_duration(total_duration);
+	wprintf(L"\n");
+
+	if (!options.next) {
+		return -1;
+	}
+
+	since = options.next(since, 1);
+	if (since < until) {
+		wprintf(L"\n");
+	}
+
+	return since;
+}
+
+static void
+append_ids_from_list(GString *s, GList *items)
+{
+	for (GList *item = items; item; item = item->next) {
+		g_string_append_printf(s, "%d", GPOINTER_TO_INT(item->data));
+		if (item->next) {
+			g_string_append(s, ", ");
+		}
+	}
+}
+
+static GString *
+report_project_sql_filter(GList *projects)
+{
+	GString *result = g_string_new(NULL);
+
+	if (projects) {
+		g_string_append(result, " WHERE projects.id IN (");
+		append_ids_from_list(result, projects);
+		g_string_append(result, ")");
+	}
+
+	return result;
+}
+
+static GString *
+report_host_sql_filter(GList *hosts)
+{
+	GString *result = g_string_new(NULL);
+
+	if (hosts) {
+		g_string_append(result, " AND host_id IN (");
+		append_ids_from_list(result, hosts);
+		g_string_append(result, ")");
+	}
+
+	return result;
+}
+
 void
 wtr_report(struct database *database, report_options_t options)
 {
 	time_t since = options.since;
 	time_t until = options.until;
 
-	time_t now = time(0);
 	time_t tomorrow = add_day(today(), 1);
 
 	each_user_process_working_directory(process_working_directory);
@@ -457,67 +540,13 @@ wtr_report(struct database *database, report_options_t options)
 	const char *p = format_string;
 	mbsrtowcs(wformat_string, &p, BUFSIZ, NULL);
 
-	GString *project_sql_filter = g_string_new(NULL);
-	if (options.projects) {
-		g_string_append(project_sql_filter, " WHERE projects.id IN (");
-		for (GList *item = options.projects; item; item = item->next) {
-			g_string_append_printf(project_sql_filter, "%d", GPOINTER_TO_INT(item->data));
-			if (item->next) {
-				g_string_append(project_sql_filter, ", ");
-			}
-		}
-		g_string_append(project_sql_filter, ")");
-	}
-
-	GString *host_sql_filter = g_string_new(NULL);
-	if (options.hosts) {
-		g_string_append(host_sql_filter, " AND host_id IN (");
-		for (GList *item = options.hosts; item; item = item->next) {
-			g_string_append_printf(host_sql_filter, "%d", GPOINTER_TO_INT(item->data));
-			if (item->next) {
-				g_string_append(host_sql_filter, ", ");
-			}
-		}
-		g_string_append(host_sql_filter, ")");
-	}
+	GString * project_sql_filter = report_project_sql_filter(options.projects);
+	GString *host_sql_filter = report_host_sql_filter(options.hosts);
 
 	while (since < until) {
-		time_t stop = until;
-
-		if (options.next) {
-			stop = MIN(until, options.next(since, 1));
-		}
-
-		char ssince[BUFSIZ], sstop[BUFSIZ];
-		strftime(ssince, BUFSIZ, "%F", localtime(&since));
-		strftime(sstop, BUFSIZ, "%F", localtime(&stop));
-		wprintf(L"wtr since %s until %s\n\n", ssince, sstop);
-
-		int current = since <= now && now < stop;
-
-		struct report_project_duration_data data = {
-			.wformat_string = wformat_string,
-			.current = current,
-		};
-		int total_duration = 0;
-		total_duration = database_get_duration_by_project(database, since, stop, project_sql_filter->str, host_sql_filter->str, report_project_duration, &data);
-
-		wprintf(L"    ");
-		for (int i = 0; i < longest_name + 18; i++) {
-			wprintf(L"-");
-		}
-		wprintf(L"\n");
-		wprintf(wformat_string, "Total");
-		print_duration(total_duration);
-		wprintf(L"\n");
-
-		if (!options.next) {
-			return;
-		}
-
-		since = options.next(since, 1);
-		if (since < until) {
-			wprintf(L"\n");
+		since = report_period(database, options, since, until, wformat_string, longest_name, project_sql_filter->str, host_sql_filter->str);
+		if (since < 0) {
+			break;
 		}
 	}
 
@@ -549,6 +578,53 @@ cmp_int(const void *a, const void *b)
 }
 
 void
+graph_stats(struct database *database, time_t since, time_t until, int nweeks, char *sql_filter, int *durations, int *min, int *max, int *total)
+{
+	*min = INT_MAX;
+	*max = 0;
+	*total = 0;
+
+	for (int day_of_week = 0; day_of_week < 7; day_of_week++) {
+		for (int week = 0; week < nweeks ; week++) {
+			time_t t = add_week(add_day(since, day_of_week), week);
+			if (t < since || t >= until) {
+				durations[(week * 7) + day_of_week] = 0;
+			} else {
+				int duration = database_get_duration(database, t, add_day(t, 1), sql_filter);
+				durations[(week * 7) + day_of_week] = duration;
+				*total += duration;
+				if (duration > *max) {
+					*max = duration;
+				}
+				if (duration > 0 && duration < *min) {
+					*min = duration;
+				}
+			}
+		}
+	}
+}
+
+GString *
+graph_sql_fliter(report_options_t options)
+{
+	GString *result = g_string_new(NULL);
+
+	if (options.projects) {
+		g_string_append(result, " AND project_id IN (");
+		append_ids_from_list(result, options.projects);
+		g_string_append(result, ")");
+	}
+
+	if (options.hosts) {
+		g_string_append(result, " AND host_id IN (");
+		append_ids_from_list(result, options.hosts);
+		g_string_append(result, ")");
+	}
+
+	return result;
+}
+
+void
 wtr_graph(struct database *database, report_options_t options)
 {
 	time_t since = options.since;
@@ -570,28 +646,7 @@ wtr_graph(struct database *database, report_options_t options)
 		until = tomorrow;
 	}
 
-	GString *sql_filter = g_string_new(NULL);
-	if (options.projects) {
-		g_string_append(sql_filter, " AND project_id IN (");
-		for (GList *item = options.projects; item; item = item->next) {
-			g_string_append_printf(sql_filter, "%d", GPOINTER_TO_INT(item->data));
-			if (item->next) {
-				g_string_append(sql_filter, ", ");
-			}
-		}
-		g_string_append(sql_filter, ")");
-	}
-
-	if (options.hosts) {
-		g_string_append(sql_filter, " AND host_id IN (");
-		for (GList *item = options.hosts; item; item = item->next) {
-			g_string_append_printf(sql_filter, "%d", GPOINTER_TO_INT(item->data));
-			if (item->next) {
-				g_string_append(sql_filter, ", ");
-			}
-		}
-		g_string_append(sql_filter, ")");
-	}
+	GString *sql_filter = graph_sql_fliter(options);
 
 	int nweeks = 0;
 	while (add_week(since, nweeks) < until) {
@@ -603,28 +658,8 @@ wtr_graph(struct database *database, report_options_t options)
 		err(EXIT_FAILURE, "malloc");
 	}
 
-	int min = INT_MAX;
-	int max = 0;
-	int total = 0;
-
-	for (int day_of_week = 0; day_of_week < 7; day_of_week++) {
-		for (int week = 0; week < nweeks ; week++) {
-			time_t t = add_week(add_day(since, day_of_week), week);
-			if (t < since || t >= until) {
-				durations[(week * 7) + day_of_week] = 0;
-			} else {
-				int duration = database_get_duration(database, t, add_day(t, 1), sql_filter->str);
-				durations[(week * 7) + day_of_week] = duration;
-				total += duration;
-				if (duration > max) {
-					max = duration;
-				}
-				if (duration > 0 && duration < min) {
-					min = duration;
-				}
-			}
-		}
-	}
+	int min, max, total;
+	graph_stats(database, since, until, nweeks, sql_filter->str, durations, &min, &max, &total);
 
 	time_t start = since;
 

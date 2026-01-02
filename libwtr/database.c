@@ -216,28 +216,30 @@ database_longuest_project_name(struct database *database)
 }
 
 static int
-find_applied_migrations(void *not_used, int argc, char **argv, char **column_name)
+find_applied_migration(void *result, int argc, char **argv, char **column_name)
 {
-	(void) not_used;
+	(void) result;
 	(void) column_name;
 
-	for (int i = 0; i < argc; i++) {
-		for (size_t j = 0; j < sizeof(migrations) / sizeof(*migrations); j++) {
-			if (strcmp(argv[i], migrations[j].name) == 0) {
-				migrations[j].applied = 1;
-			}
+	if (argc != 1) {
+		return 1;
+	}
+
+	for (size_t i = 0; i < sizeof(migrations) / sizeof(*migrations); i++) {
+		if (strcmp(argv[0], migrations[i].name) == 0) {
+			migrations[i].applied = 1;
 		}
 	}
 	return 0;
 }
 
 static void
-database_migrate(struct database *database)
+load_applied_migrations(struct database *database)
 {
 	char *errmsg = NULL;
 	int rc;
 
-	rc = sqlite3_exec(database->db, "SELECT migration FROM information_schema", find_applied_migrations, 0, &errmsg);
+	rc = sqlite3_exec(database->db, "SELECT migration FROM information_schema", find_applied_migration, 0, &errmsg);
 	switch (rc) {
 	case SQLITE_OK:
 		break;
@@ -252,36 +254,50 @@ database_migrate(struct database *database)
 		errx(EXIT_FAILURE, "Cannot read the information_schema table: %s", errmsg);
 		/* NOTREACHED */
 	}
+}
+
+static void
+apply_migration(struct database *database, struct migration *migration)
+{
+	char *errmsg = NULL;
+
+	if (sqlite3_exec(database->db, "BEGIN TRANSACTION", NULL, 0, &errmsg) != SQLITE_OK) {
+		errx(EXIT_FAILURE, "%s", errmsg);
+		/* NOTREACHED */
+	}
+	if (migration->sql) {
+		if (sqlite3_exec(database->db, migration->sql, NULL, 0, &errmsg) != SQLITE_OK) {
+			errx(EXIT_FAILURE, "%s", errmsg);
+			/* NOTREACHED */
+		}
+	}
+	if (migration->callback) {
+		migration->callback(database);
+	}
+	char *sql = NULL;
+	if (asprintf(&sql, "INSERT INTO information_schema (migration) VALUES ('%s')", migration->name) < 0) {
+		err(EXIT_FAILURE, "asprintf");
+		/* NOTREACHED */
+	}
+	if (sqlite3_exec(database->db, sql, NULL, 0, &errmsg) != SQLITE_OK) {
+		errx(EXIT_FAILURE, "%s", errmsg);
+		/* NOTREACHED */
+	}
+	free(sql);
+	if (sqlite3_exec(database->db, "COMMIT", NULL, 0, &errmsg) != SQLITE_OK) {
+		errx(EXIT_FAILURE, "%s", errmsg);
+		/* NOTREACHED */
+	}
+}
+
+static void
+database_migrate(struct database *database)
+{
+	load_applied_migrations(database);
 
 	for (size_t i = 0; i < sizeof(migrations) / sizeof(*migrations); i++) {
 		if (!migrations[i].applied) {
-			if (sqlite3_exec(database->db, "BEGIN TRANSACTION", NULL, 0, &errmsg) != SQLITE_OK) {
-				errx(EXIT_FAILURE, "%s", errmsg);
-				/* NOTREACHED */
-			}
-			if (migrations[i].sql) {
-				if (sqlite3_exec(database->db, migrations[i].sql, NULL, 0, &errmsg) != SQLITE_OK) {
-					errx(EXIT_FAILURE, "%s", errmsg);
-					/* NOTREACHED */
-				}
-			}
-			if (migrations[i].callback) {
-				migrations[i].callback(database);
-			}
-			char *sql = NULL;
-			if (asprintf(&sql, "INSERT INTO information_schema (migration) VALUES ('%s')", migrations[i].name) < 0) {
-				err(EXIT_FAILURE, "asprintf");
-				/* NOTREACHED */
-			}
-			if (sqlite3_exec(database->db, sql, NULL, 0, &errmsg) != SQLITE_OK) {
-				errx(EXIT_FAILURE, "%s", errmsg);
-				/* NOTREACHED */
-			}
-			free(sql);
-			if (sqlite3_exec(database->db, "COMMIT", NULL, 0, &errmsg) != SQLITE_OK) {
-				errx(EXIT_FAILURE, "%s", errmsg);
-				/* NOTREACHED */
-			}
+			apply_migration(database, &migrations[i]);
 		}
 
 	}
