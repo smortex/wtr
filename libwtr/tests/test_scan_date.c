@@ -19,8 +19,9 @@ test_scan_date(char *str, int expected_ret, time_t expected_date)
 		return;
 	}
 
-	if (ret < 0)
+	if (ret < 0) {
 		return;
+	}
 
 	printf("  should scan %ld: %ld (%s)\n", expected_date, date, expected_date == date ? "OK" : "FAIL");
 	if (expected_date != date) {

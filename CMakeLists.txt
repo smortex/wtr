@@ -1,6 +1,14 @@
-cmake_minimum_required(VERSION "3.18")
+cmake_minimum_required(VERSION "3.27")
 project("wtr")
 include(CTest)
+
+if (CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
+	find_program(CLANG_TIDY "clang-tidy")
+
+	if(CLANG_TIDY)
+		set(CMAKE_C_CLANG_TIDY ${CLANG_TIDY} "--config-file=${CMAKE_SOURCE_DIR}/.clang-tidy")
+	endif()
+endif()
 
 add_compile_options(-Wall -Wextra -Werror)
 add_definitions(-D_GNU_SOURCE)

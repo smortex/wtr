@@ -17,8 +17,9 @@ short_hostname(void)
 		}
 
 		for (char *c = _hostname; *c; c++) {
-			if (*c == '.')
+			if (*c == '.') {
 				*c = '\0';
+			}
 		}
 	}
 
@@ -31,8 +32,9 @@ scan_date(const char *str, time_t *date)
 	time_t now = time(0);
 	struct tm *tm = localtime(&now);
 
-	if (!strptime(str, "%Y-%m-%d", tm))
+	if (!strptime(str, "%Y-%m-%d", tm)) {
 		return -1;
+	}
 
 	tm->tm_sec = 0;
 	tm->tm_min = 0;
@@ -48,10 +50,13 @@ scan_duration(const char *str, int *duration)
 	int hrs, min, sec;
 	char rest;
 
+	// NOLINTNEXTLINE
 	if (sscanf(str, "%d:%02d:%02d%c", &hrs, &min, &sec, &rest) == 3) {
 		*duration = hrs * 3600 + min * 60 + sec;
 		return 0;
 	}
+
+	// NOLINTNEXTLINE
 	if (sscanf(str, "%d:%02d%c", &hrs, &min, &rest) == 2) {
 		*duration = hrs * 3600 + min * 60;
 		return 0;

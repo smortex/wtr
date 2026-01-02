@@ -46,8 +46,9 @@ each_user_process(void callback(struct procstat *prstat, struct kinfo_proc *proc
 	}
 
 	for (uint i = 0; i < nproc; i++) {
-		if (procs[i].ki_stat == PS_DEAD)
+		if (procs[i].ki_stat == PS_DEAD) {
 			continue;
+		}
 
 		callback(prstat, &procs[i], callback2);
 	}

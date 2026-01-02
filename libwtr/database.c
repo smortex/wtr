@@ -26,21 +26,33 @@ host_id(struct database *database)
 }
 
 static int
-read_single_integer(void *result, int argc, char **argv, char **column_name)
+read_single_integer(void *r, int argc, char **argv, char **column_name)
 {
 	(void) column_name;
 
-	if (argc == 1 && argv[0]) {
-		sscanf(argv[0], "%d", (int *) result);
+	if (argc != 1 || argv[0] == NULL) {
+		return 1;
 	}
+
+	int *result = r;
+	char *rest;
+	*result = strtol(argv[0], &rest, 10);
+
+	if (*rest) {
+		return 1;
+	}
+
 	return 0;
 }
 
 static int
 read_single_string(void *r, int argc, char **argv, char **column_name)
 {
-	(void) argc;
 	(void) column_name;
+
+	if (argc != 1 || argv[0] == NULL) {
+		return 1;
+	}
 
 	char **result = r;
 	*result = strdup(argv[0]);
@@ -53,11 +65,19 @@ read_single_time_t(void *r, int argc, char **argv, char **column_name)
 {
 	(void) column_name;
 
-	time_t *result = r;
-
-	if (argc == 1 && argv[0]) {
-		*result = strtol(argv[0], NULL, 10);
+	if (argc != 1 || argv[0] == NULL) {
+		return 1;
 	}
+
+	time_t *result = r;
+	char *rest;
+
+	*result = strtol(argv[0], &rest, 10);
+
+	if (*rest) {
+		return 1;
+	}
+
 	return 0;
 }
 
@@ -196,28 +216,30 @@ database_longuest_project_name(struct database *database)
 }
 
 static int
-find_applied_migrations(void *not_used, int argc, char **argv, char **column_name)
+find_applied_migration(void *result, int argc, char **argv, char **column_name)
 {
-	(void) not_used;
+	(void) result;
 	(void) column_name;
 
-	for (int i = 0; i < argc; i++) {
-		for (size_t j = 0; j < sizeof(migrations) / sizeof(*migrations); j++) {
-			if (strcmp(argv[i], migrations[j].name) == 0) {
-				migrations[j].applied = 1;
-			}
+	if (argc != 1) {
+		return 1;
+	}
+
+	for (size_t i = 0; i < sizeof(migrations) / sizeof(*migrations); i++) {
+		if (strcmp(argv[0], migrations[i].name) == 0) {
+			migrations[i].applied = 1;
 		}
 	}
 	return 0;
 }
 
 static void
-database_migrate(struct database *database)
+load_applied_migrations(struct database *database)
 {
 	char *errmsg = NULL;
 	int rc;
 
-	rc = sqlite3_exec(database->db, "SELECT migration FROM information_schema", find_applied_migrations, 0, &errmsg);
+	rc = sqlite3_exec(database->db, "SELECT migration FROM information_schema", find_applied_migration, 0, &errmsg);
 	switch (rc) {
 	case SQLITE_OK:
 		break;
@@ -232,36 +254,50 @@ database_migrate(struct database *database)
 		errx(EXIT_FAILURE, "Cannot read the information_schema table: %s", errmsg);
 		/* NOTREACHED */
 	}
+}
+
+static void
+apply_migration(struct database *database, struct migration *migration)
+{
+	char *errmsg = NULL;
+
+	if (sqlite3_exec(database->db, "BEGIN TRANSACTION", NULL, 0, &errmsg) != SQLITE_OK) {
+		errx(EXIT_FAILURE, "%s", errmsg);
+		/* NOTREACHED */
+	}
+	if (migration->sql) {
+		if (sqlite3_exec(database->db, migration->sql, NULL, 0, &errmsg) != SQLITE_OK) {
+			errx(EXIT_FAILURE, "%s", errmsg);
+			/* NOTREACHED */
+		}
+	}
+	if (migration->callback) {
+		migration->callback(database);
+	}
+	char *sql = NULL;
+	if (asprintf(&sql, "INSERT INTO information_schema (migration) VALUES ('%s')", migration->name) < 0) {
+		err(EXIT_FAILURE, "asprintf");
+		/* NOTREACHED */
+	}
+	if (sqlite3_exec(database->db, sql, NULL, 0, &errmsg) != SQLITE_OK) {
+		errx(EXIT_FAILURE, "%s", errmsg);
+		/* NOTREACHED */
+	}
+	free(sql);
+	if (sqlite3_exec(database->db, "COMMIT", NULL, 0, &errmsg) != SQLITE_OK) {
+		errx(EXIT_FAILURE, "%s", errmsg);
+		/* NOTREACHED */
+	}
+}
+
+static void
+database_migrate(struct database *database)
+{
+	load_applied_migrations(database);
 
 	for (size_t i = 0; i < sizeof(migrations) / sizeof(*migrations); i++) {
 		if (!migrations[i].applied) {
-			if (sqlite3_exec(database->db, "BEGIN TRANSACTION", NULL, 0, &errmsg) != SQLITE_OK) {
-				errx(EXIT_FAILURE, "%s", errmsg);
-				/* NOTREACHED */
-			}
-			if (migrations[i].sql) {
-				if (sqlite3_exec(database->db, migrations[i].sql, NULL, 0, &errmsg) != SQLITE_OK) {
-					errx(EXIT_FAILURE, "%s", errmsg);
-					/* NOTREACHED */
-				}
-			}
-			if (migrations[i].callback) {
-				migrations[i].callback(database);
-			}
-			char *sql = NULL;
-			if (asprintf(&sql, "INSERT INTO information_schema (migration) VALUES ('%s')", migrations[i].name) < 0) {
-				err(EXIT_FAILURE, "asprintf");
-				/* NOTREACHED */
-			}
-			if (sqlite3_exec(database->db, sql, NULL, 0, &errmsg) != SQLITE_OK) {
-				errx(EXIT_FAILURE, "%s", errmsg);
-				/* NOTREACHED */
-			}
-			free(sql);
-			if (sqlite3_exec(database->db, "COMMIT", NULL, 0, &errmsg) != SQLITE_OK) {
-				errx(EXIT_FAILURE, "%s", errmsg);
-				/* NOTREACHED */
-			}
+			apply_migration(database, &migrations[i]);
 		}
 
 	}
@@ -351,10 +387,10 @@ database_project_find_by_name(struct database *database, const char *project)
 			strftime(date, sizeof(date), "%FT%T%z", localtime(&info.created_at));
 			warnx("Project %s was merged into %s on %s.  You should remove it from your configuration.", info.old_project_name, info.new_project_name, date);
 
+			id = database_project_find_by_name(database, info.new_project_name);
+
 			free(info.old_project_name);
 			free(info.new_project_name);
-
-			id = database_project_find_by_name(database, info.new_project_name);
 		}
 	}
 
@@ -412,7 +448,7 @@ database_get_duration(struct database *database, time_t since, time_t until, con
 	int duration = 0;
 	char *sql = NULL;
 	char *errmsg;
-	if (asprintf(&sql, "SELECT SUM(duration) FROM activity WHERE date >= %ld AND date < %ld%s", since, until, sql_filter) < 0) {
+	if (asprintf(&sql, "SELECT COALESCE(SUM(duration), 0) FROM activity WHERE date >= %ld AND date < %ld%s", since, until, sql_filter) < 0) {
 		err(EXIT_FAILURE, "asprintf");
 		/* NOTREACHED */
 	}
