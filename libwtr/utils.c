@@ -48,10 +48,13 @@ scan_duration(const char *str, int *duration)
 	int hrs, min, sec;
 	char rest;
 
+	// NOLINTNEXTLINE
 	if (sscanf(str, "%d:%02d:%02d%c", &hrs, &min, &sec, &rest) == 3) {
 		*duration = hrs * 3600 + min * 60 + sec;
 		return 0;
 	}
+
+	// NOLINTNEXTLINE
 	if (sscanf(str, "%d:%02d%c", &hrs, &min, &rest) == 2) {
 		*duration = hrs * 3600 + min * 60;
 		return 0;

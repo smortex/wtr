@@ -26,21 +26,33 @@ host_id(struct database *database)
 }
 
 static int
-read_single_integer(void *result, int argc, char **argv, char **column_name)
+read_single_integer(void *r, int argc, char **argv, char **column_name)
 {
 	(void) column_name;
 
-	if (argc == 1 && argv[0]) {
-		sscanf(argv[0], "%d", (int *) result);
+	if (argc != 1 || argv[0] == NULL) {
+		return 1;
 	}
+
+	int *result = r;
+	char *rest;
+	*result = strtol(argv[0], &rest, 10);
+
+	if (*rest) {
+		return 1;
+	}
+
 	return 0;
 }
 
 static int
 read_single_string(void *r, int argc, char **argv, char **column_name)
 {
-	(void) argc;
 	(void) column_name;
+
+	if (argc != 1 || argv[0] == NULL) {
+		return 1;
+	}
 
 	char **result = r;
 	*result = strdup(argv[0]);
@@ -53,11 +65,19 @@ read_single_time_t(void *r, int argc, char **argv, char **column_name)
 {
 	(void) column_name;
 
-	time_t *result = r;
-
-	if (argc == 1 && argv[0]) {
-		*result = strtol(argv[0], NULL, 10);
+	if (argc != 1 || argv[0] == NULL) {
+		return 1;
 	}
+
+	time_t *result = r;
+	char *rest;
+
+	*result = strtol(argv[0], &rest, 10);
+
+	if (*rest) {
+		return 1;
+	}
+
 	return 0;
 }
 
@@ -412,7 +432,7 @@ database_get_duration(struct database *database, time_t since, time_t until, con
 	int duration = 0;
 	char *sql = NULL;
 	char *errmsg;
-	if (asprintf(&sql, "SELECT SUM(duration) FROM activity WHERE date >= %ld AND date < %ld%s", since, until, sql_filter) < 0) {
+	if (asprintf(&sql, "SELECT COALESCE(SUM(duration), 0) FROM activity WHERE date >= %ld AND date < %ld%s", since, until, sql_filter) < 0) {
 		err(EXIT_FAILURE, "asprintf");
 		/* NOTREACHED */
 	}
