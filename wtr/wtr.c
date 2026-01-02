@@ -101,7 +101,7 @@ print_duration_color(int duration, int min, int max)
 }
 
 static void
-print_graph(const time_t since, time_t until, int *durations, int min, int max, int offset)
+print_graph(const time_t since, time_t until, const int *const durations, int min, int max, int offset)
 {
 	time_t graph_since = beginning_of_week(since);
 	time_t graph_until = beginning_of_week(until);
