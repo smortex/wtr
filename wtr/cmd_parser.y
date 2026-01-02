@@ -13,14 +13,14 @@
 void		 yyerror(struct database *database, const char *msg);
 
 struct {
-    time_t (*beginning_of)(time_t);
-    time_t (*add)(time_t, int);
+	time_t (*beginning_of)(time_t);
+	time_t (*add)(time_t, int);
 } time_unit_functions[] = {
-    { beginning_of_day, add_day },
-    { beginning_of_week, add_week },
-    { beginning_of_month, add_month },
-    { beginning_of_quarter, add_quarter },
-    { beginning_of_year, add_year },
+	{ beginning_of_day, add_day },
+	{ beginning_of_week, add_week },
+	{ beginning_of_month, add_month },
+	{ beginning_of_quarter, add_quarter },
+	{ beginning_of_year, add_year },
 };
 
 report_options_t combine_report_parts(report_options_t a, report_options_t b);
@@ -28,69 +28,69 @@ report_options_t combine_report_parts(report_options_t a, report_options_t b);
 GList *
 add_host_by_name(struct database *database, GList *list, const char *name)
 {
-    bool found = false;
+	bool found = false;
 
-    int id = database_host_find_by_name(database, name);
-    if (id >= 0) {
-	list = g_list_append(list, GINT_TO_POINTER(id));
-	found = true;
-    }
+	int id = database_host_find_by_name(database, name);
+	if (id >= 0) {
+		list = g_list_append(list, GINT_TO_POINTER(id));
+		found = true;
+	}
 
-    if (!found) {
-	errx(EXIT_FAILURE, "%s: no such host", name);
-    }
+	if (!found) {
+		errx(EXIT_FAILURE, "%s: no such host", name);
+	}
 
-    return list;
+	return list;
 }
 
 GList *
 add_project_by_name(struct database *database, GList *list, const char *name)
 {
-    bool found = false;
+	bool found = false;
 
-    if (name[0] == '+') {
-	for (size_t i = 0; i < nprojects; i++) {
-	    if (projects[i].tags && g_strv_contains((const gchar *const*)projects[i].tags, name + 1)) {
-		list = g_list_append(list, GINT_TO_POINTER(projects[i].id));
-		found = true;
-	    }
+	if (name[0] == '+') {
+		for (size_t i = 0; i < nprojects; i++) {
+			if (projects[i].tags && g_strv_contains((const gchar *const*)projects[i].tags, name + 1)) {
+			list = g_list_append(list, GINT_TO_POINTER(projects[i].id));
+			found = true;
+			}
+		}
+	} else {
+		int id = database_project_find_by_name(database, name);
+		if (id >= 0) {
+			list = g_list_append(list, GINT_TO_POINTER(id));
+			found = true;
+		}
 	}
-    } else {
-	int id = database_project_find_by_name(database, name);
-	if (id >= 0) {
-		list = g_list_append(list, GINT_TO_POINTER(id));
-		found = true;
+
+	if (!found) {
+		errx(EXIT_FAILURE, "%s: no such project", name);
 	}
-    }
 
-    if (!found) {
-	errx(EXIT_FAILURE, "%s: no such project", name);
-    }
-
-    return list;
+	return list;
 }
 
 void
 g_list_print(FILE *io, GList *list)
 {
-    fprintf(io, "(");
-    while (list) {
-	fprintf(io, "%d", GPOINTER_TO_INT(list->data));
-	if (list->next) {
-	    fprintf(io, ", ");
+	fprintf(io, "(");
+	while (list) {
+		fprintf(io, "%d", GPOINTER_TO_INT(list->data));
+		if (list->next) {
+			fprintf(io, ", ");
+		}
+		list = list->next;
 	}
-	list = list->next;
-    }
-    fprintf(io, ")");
+	fprintf(io, ")");
 }
 
 void
 time_print(FILE *io, time_t time)
 {
-    struct tm *t = localtime(&time);
-    char buf[BUFSIZ];
-    strftime(buf, sizeof(buf), "%c", t);
-    fprintf(io, "%ld (%s)", time, buf);
+	struct tm *t = localtime(&time);
+	char buf[BUFSIZ];
+	strftime(buf, sizeof(buf), "%c", t);
+	fprintf(io, "%ld (%s)", time, buf);
 }
 
 report_options_t empty_options;
@@ -104,28 +104,28 @@ report_options_t empty_options;
 %printer { time_print(yyo, $$); } <date>;
 %printer { fprintf(yyo, "%s", $$); } <string>;
 %printer {
-    fprintf(yyo, "since=");
-    time_print(yyo, $$.since);
-    fprintf(yyo, " until=");
-    time_print(yyo, $$.until);
-    fprintf(yyo, " rounding=%d projects=", $$.rounding);
-    g_list_print(yyo, $$.projects);
-    fprintf(yyo, " hosts=");
-    g_list_print(yyo, $$.hosts);
+	fprintf(yyo, "since=");
+	time_print(yyo, $$.since);
+	fprintf(yyo, " until=");
+	time_print(yyo, $$.until);
+	fprintf(yyo, " rounding=%d projects=", $$.rounding);
+	g_list_print(yyo, $$.projects);
+	fprintf(yyo, " hosts=");
+	g_list_print(yyo, $$.hosts);
 } <report_options>;
 %printer {
-    fprintf(yyo, "<%p> ", $$);
-    g_list_print(yyo, $$);
+	fprintf(yyo, "<%p> ", $$);
+	g_list_print(yyo, $$);
 } <projects> <hosts>;
 
 %union {
-    int integer;
-    time_t date;
-    char *string;
-    time_unit_t time_unit;
-    report_options_t report_options;
-    GList *projects;
-    GList *hosts;
+	int integer;
+	time_t date;
+	char *string;
+	time_unit_t time_unit;
+	report_options_t report_options;
+	GList *projects;
+	GList *hosts;
 }
 
 %start command
@@ -249,44 +249,44 @@ hosts: hosts IDENTIFIER { $$ = add_host_by_name(database, $1, $2); free($2); }
 report_options_t
 combine_report_parts(report_options_t a, report_options_t b)
 {
-    report_options_t res = a;
-    if (a.since && b.since)
-        errx(EXIT_FAILURE, "multiple since date");
-    if (a.until && b.until)
-        errx(EXIT_FAILURE, "multiple until date");
-    if (a.next && b.next)
-        errx(EXIT_FAILURE, "multiple next functions");
-    if (a.rounding && b.rounding)
-        errx(EXIT_FAILURE, "multiple rounding functions");
-    if (a.projects && b.projects)
-	errx(EXIT_FAILURE, "multiple project filters");
-    if (a.hosts && b.hosts)
-	errx(EXIT_FAILURE, "multiple host filters");
+	report_options_t res = a;
+	if (a.since && b.since)
+		errx(EXIT_FAILURE, "multiple since date");
+	if (a.until && b.until)
+		errx(EXIT_FAILURE, "multiple until date");
+	if (a.next && b.next)
+		errx(EXIT_FAILURE, "multiple next functions");
+	if (a.rounding && b.rounding)
+		errx(EXIT_FAILURE, "multiple rounding functions");
+	if (a.projects && b.projects)
+		errx(EXIT_FAILURE, "multiple project filters");
+	if (a.hosts && b.hosts)
+		errx(EXIT_FAILURE, "multiple host filters");
 
-    res.since = a.since | b.since;
-    res.until = a.until | b.until;
-    if (a.next)
-	res.next = a.next;
-    else
-	res.next = b.next;
-    res.rounding = a.rounding | b.rounding;
-    if (a.projects)
-	res.projects = a.projects;
-    else
-	res.projects = b.projects;
-    if (a.hosts)
-	res.hosts = a.hosts;
-    else
-	res.hosts = b.hosts;
+	res.since = a.since | b.since;
+	res.until = a.until | b.until;
+	if (a.next)
+		res.next = a.next;
+	else
+		res.next = b.next;
+	res.rounding = a.rounding | b.rounding;
+	if (a.projects)
+		res.projects = a.projects;
+	else
+		res.projects = b.projects;
+	if (a.hosts)
+		res.hosts = a.hosts;
+	else
+		res.hosts = b.hosts;
 
-    return res;
+	return res;
 }
 
 
 void
 yyerror(struct database *database, const char *msg)
 {
-    (void) database;
+	(void) database;
 
-    fprintf(stderr, "yyerror: %s\n", msg);
+	fprintf(stderr, "yyerror: %s\n", msg);
 }

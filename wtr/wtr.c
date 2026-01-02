@@ -263,6 +263,7 @@ main(int argc, char *argv[])
 
 			fprintf(f, "# Define one section per project, and set the \"root\" key to the path or its\n"
 			        "# root directory.\n"
+			        "# Tags can be set by project using the \"tags\" key.\n"
 			        "# Lines starting with a '#' are comments.\n"
 			        "#\n"
 			        "# Examples:\n"
@@ -270,7 +271,8 @@ main(int argc, char *argv[])
 			        "# root = /home/wile/Projects/ACME\n"
 			        "#\n"
 			        "# [Fast and Furry-ous]\n"
-			        "# root = /nfs/movies/E01\n");
+			        "# root = /nfs/movies/E01\n"
+			        "# tags = tnt;rushes\n");
 
 			fclose(f);
 			wtr_edit();
@@ -541,8 +543,8 @@ wtr_graph(struct database *database, report_options_t options)
 
 	if (!since) {
 		since = add_week(beginning_of_week(today()), 1 - screen_max_weeks);
-		/*                                                   `--- current week
-		     */
+		/*                                           `--- current week
+		 */
 	}
 
 	if (!until) {
