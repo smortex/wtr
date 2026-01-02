@@ -116,6 +116,7 @@ main(int argc, char *argv[])
 
 	if (argc > 1) {
 		int child_pid;
+		// NOLINTNEXTLINE
 		if (!(g_spawn_async_with_pipes(NULL, &argv[1], NULL, G_SPAWN_SEARCH_PATH | G_SPAWN_CHILD_INHERITS_STDIN | G_SPAWN_DO_NOT_REAP_CHILD, NULL, NULL, &child_pid, NULL, NULL, NULL, &error))) {
 			errx(EXIT_FAILURE, "%s", error->message);
 		}
