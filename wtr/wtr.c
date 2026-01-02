@@ -31,14 +31,15 @@ print_duration(int duration)
 	int hrs = duration % 24;
 	duration /= 24;
 
-	if (duration == 1)
+	if (duration == 1) {
 		wprintf(L"%3d day  %2d:%02d:%02d", duration, hrs, min, sec);
-	else if (duration > 1)
+	} else if (duration > 1) {
 		wprintf(L"%3d days %2d:%02d:%02d", duration, hrs, min, sec);
-	else if (hrs > 0)
+	} else if (hrs > 0) {
 		wprintf(L"         %2d:%02d:%02d", hrs, min, sec);
-	else
+	} else {
 		wprintf(L"            %2d:%02d", min, sec);
+	}
 }
 
 static void
@@ -56,8 +57,9 @@ print_top_months_line(const time_t since, time_t until)
 			char buf[10];
 			strftime(buf, sizeof(buf), "%b", &tm_week_start);
 
-			if (buf[strlen(buf) - 1] == '.')
+			if (buf[strlen(buf) - 1] == '.') {
 				buf[strlen(buf) - 1] = '\0';
+			}
 
 			wchar_t wbuf[4];
 			const char *p = buf;
@@ -78,10 +80,11 @@ print_duration_color(int duration, int min, int max)
 	if (duration > 0) {
 		float relative_ratio;
 
-		if (min == max)
+		if (min == max) {
 			relative_ratio = 0.0;
-		else
+		} else {
 			relative_ratio = 1.0 - (float) (duration - min) / (max - min);
+		}
 		int red = relative_ratio * (155 - 33) + 33;
 		int green = relative_ratio * (233 - 110) + 110;
 		int blue = relative_ratio * (168 - 57) + 57;
@@ -102,8 +105,9 @@ print_graph(const time_t since, time_t until, int *durations, int min, int max, 
 {
 	time_t graph_since = beginning_of_week(since);
 	time_t graph_until = beginning_of_week(until);
-	if (graph_until < until)
+	if (graph_until < until) {
 		graph_until = add_week(graph_until, 1);
+	}
 
 	for (int day_of_week = 0; day_of_week < 7; day_of_week++) {
 		// print day name
@@ -113,8 +117,9 @@ print_graph(const time_t since, time_t until, int *durations, int min, int max, 
 			char buf[10];
 			strftime(buf, sizeof(buf), "%a", tm);
 
-			if (buf[strlen(buf) - 1] == '.')
+			if (buf[strlen(buf) - 1] == '.') {
 				buf[strlen(buf) - 1] = '\0';
+			}
 
 			wchar_t wbuf[4];
 			const char *p = buf;
@@ -163,8 +168,9 @@ print_bottom_months_line(const time_t since, time_t until)
 			char buf[10];
 			strftime(buf, sizeof(buf), "%b", &tm_week_stop);
 
-			if (buf[strlen(buf) - 1] == '.')
+			if (buf[strlen(buf) - 1] == '.') {
 				buf[strlen(buf) - 1] = '\0';
+			}
 
 			wchar_t wbuf[4];
 			const char *p = buf;
@@ -211,11 +217,13 @@ static void
 print_summary_duration(const char *label, int duration, int min, int max)
 {
 	wprintf(L"    ");
-	if (min < max)
+	if (min < max) {
 		print_duration_color(duration, min, max);
+	}
 	wprintf(L"%s", label);
-	if (min < max)
+	if (min < max) {
 		wprintf(L"\033[0m");
+	}
 	wprintf(L" ", label);
 	print_duration(duration);
 	wprintf(L"\n");
@@ -294,8 +302,9 @@ main(int argc, char *argv[])
 			yydebug = 1;
 			break;
 		case 'h':
-			if (system("man wtr") != 0)
+			if (system("man wtr") != 0) {
 				exit(EXIT_SUCCESS);
+			}
 			exit(EXIT_SUCCESS);
 			break; /* NOTREACHED */
 		default:
@@ -351,8 +360,9 @@ void
 wtr_edit(void)
 {
 	char *editor = getenv("EDITOR");
-	if (!editor)
+	if (!editor) {
 		editor = "vi";
+	}
 	char *config = config_file_path();
 	char *cmd;
 	if (asprintf(&cmd, "%s %s", editor, config) < 0) {
@@ -429,16 +439,19 @@ wtr_report(struct database *database, report_options_t options)
 
 	each_user_process_working_directory(process_working_directory);
 
-	if (!since)
+	if (!since) {
 		since = today();
+	}
 
-	if (!until)
+	if (!until) {
 		until = tomorrow;
+	}
 
 	int longest_name = database_longuest_project_name(database);
 	char *format_string;
-	if (asprintf(&format_string, "    %%-%ds ", longest_name) < 0)
+	if (asprintf(&format_string, "    %%-%ds ", longest_name) < 0) {
 		err(EXIT_FAILURE, "asprintf");
+	}
 
 	wchar_t *wformat_string = malloc(sizeof(wchar_t) * (strlen(format_string) + 1));
 	const char *p = format_string;
@@ -449,8 +462,9 @@ wtr_report(struct database *database, report_options_t options)
 		g_string_append(project_sql_filter, " WHERE projects.id IN (");
 		for (GList *item = options.projects; item; item = item->next) {
 			g_string_append_printf(project_sql_filter, "%d", GPOINTER_TO_INT(item->data));
-			if (item->next)
+			if (item->next) {
 				g_string_append(project_sql_filter, ", ");
+			}
 		}
 		g_string_append(project_sql_filter, ")");
 	}
@@ -460,8 +474,9 @@ wtr_report(struct database *database, report_options_t options)
 		g_string_append(host_sql_filter, " AND host_id IN (");
 		for (GList *item = options.hosts; item; item = item->next) {
 			g_string_append_printf(host_sql_filter, "%d", GPOINTER_TO_INT(item->data));
-			if (item->next)
+			if (item->next) {
 				g_string_append(host_sql_filter, ", ");
+			}
 		}
 		g_string_append(host_sql_filter, ")");
 	}
@@ -469,8 +484,9 @@ wtr_report(struct database *database, report_options_t options)
 	while (since < until) {
 		time_t stop = until;
 
-		if (options.next)
+		if (options.next) {
 			stop = MIN(until, options.next(since, 1));
+		}
 
 		char ssince[BUFSIZ], sstop[BUFSIZ];
 		strftime(ssince, BUFSIZ, "%F", localtime(&since));
@@ -495,12 +511,14 @@ wtr_report(struct database *database, report_options_t options)
 		print_duration(total_duration);
 		wprintf(L"\n");
 
-		if (!options.next)
+		if (!options.next) {
 			return;
+		}
 
 		since = options.next(since, 1);
-		if (since < until)
+		if (since < until) {
 			wprintf(L"\n");
+		}
 	}
 
 	free(wformat_string);
@@ -557,8 +575,9 @@ wtr_graph(struct database *database, report_options_t options)
 		g_string_append(sql_filter, " AND project_id IN (");
 		for (GList *item = options.projects; item; item = item->next) {
 			g_string_append_printf(sql_filter, "%d", GPOINTER_TO_INT(item->data));
-			if (item->next)
+			if (item->next) {
 				g_string_append(sql_filter, ", ");
+			}
 		}
 		g_string_append(sql_filter, ")");
 	}
@@ -567,14 +586,17 @@ wtr_graph(struct database *database, report_options_t options)
 		g_string_append(sql_filter, " AND host_id IN (");
 		for (GList *item = options.hosts; item; item = item->next) {
 			g_string_append_printf(sql_filter, "%d", GPOINTER_TO_INT(item->data));
-			if (item->next)
+			if (item->next) {
 				g_string_append(sql_filter, ", ");
+			}
 		}
 		g_string_append(sql_filter, ")");
 	}
 
-	int nweeks;
-	for (nweeks = 0; add_week(since, nweeks) < until; nweeks++);
+	int nweeks = 0;
+	while (add_week(since, nweeks) < until) {
+		nweeks++;
+	}
 
 	int *durations;
 	if (!(durations = malloc(7 * nweeks * sizeof(*durations)))) {
@@ -594,10 +616,12 @@ wtr_graph(struct database *database, report_options_t options)
 				int duration = database_get_duration(database, t, add_day(t, 1), sql_filter->str);
 				durations[week * 7 + day_of_week] = duration;
 				total += duration;
-				if (duration > max)
+				if (duration > max) {
 					max = duration;
-				if (duration > 0 && duration < min)
+				}
+				if (duration > 0 && duration < min) {
 					min = duration;
+				}
 			}
 		}
 	}
@@ -607,10 +631,11 @@ wtr_graph(struct database *database, report_options_t options)
 	while (start < until) {
 
 		time_t stop;
-		if (options.next)
+		if (options.next) {
 			stop = MIN(until, options.next(start, 1));
-		else
+		} else {
 			stop = until;
+		}
 
 		while (start < stop) {
 			time_t page_stop = MIN(stop, add_week(beginning_of_week(start), screen_max_weeks));
@@ -625,8 +650,9 @@ wtr_graph(struct database *database, report_options_t options)
 			start = page_stop;
 		}
 
-		if (!options.next)
+		if (!options.next) {
 			break;
+		}
 
 		start = stop;
 	}

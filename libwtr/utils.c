@@ -17,8 +17,9 @@ short_hostname(void)
 		}
 
 		for (char *c = _hostname; *c; c++) {
-			if (*c == '.')
+			if (*c == '.') {
 				*c = '\0';
+			}
 		}
 	}
 
@@ -31,8 +32,9 @@ scan_date(const char *str, time_t *date)
 	time_t now = time(0);
 	struct tm *tm = localtime(&now);
 
-	if (!strptime(str, "%Y-%m-%d", tm))
+	if (!strptime(str, "%Y-%m-%d", tm)) {
 		return -1;
+	}
 
 	tm->tm_sec = 0;
 	tm->tm_min = 0;

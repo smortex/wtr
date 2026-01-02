@@ -19,8 +19,9 @@ test_scan_duration(char *str, int expected_ret, int expected_duration)
 		return;
 	}
 
-	if (ret < 0)
+	if (ret < 0) {
 		return;
+	}
 
 	printf("  should scan %d: %d (%s)\n", expected_duration, duration, expected_duration == duration ? "OK" : "FAIL");
 	if (expected_duration != duration) {

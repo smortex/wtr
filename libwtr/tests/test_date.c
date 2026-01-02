@@ -57,8 +57,9 @@ const time_t time_at_beginning_of_year[] = {
 time_t
 __wrap_time(time_t *tloc)
 {
-	if (tloc)
+	if (tloc) {
 		*tloc = now;
+	}
 
 	return now;
 }
