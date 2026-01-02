@@ -14,6 +14,13 @@ env:
 jobs:
   build:
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+          - cc: gcc-14
+            cxx: g++-14
+          - cc: clang-18
+            cxx: clang++-18
     steps:
     - uses: actions/checkout@v3
     - name: Update apt repository
@@ -21,6 +28,9 @@ jobs:
     - name: Install build dependencies
       run: sudo apt-get install -y astyle libbsd-dev libglib2.0-dev
     - name: Configure CMake
+      env:
+        CC: /usr/bin/${{ matrix.cc }}
+        CXX: /usr/bin/${{ matrix.cxx }}
       run: cmake -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}}
     - name: Check style
       run: cmake --build ${{github.workspace}}/build --target style && git diff --exit-code
