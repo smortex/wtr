@@ -541,8 +541,8 @@ wtr_graph(struct database *database, report_options_t options)
 
 	if (!since) {
 		since = add_week(beginning_of_week(today()), 1 - screen_max_weeks);
-		/*                                                   `--- current week
-		     */
+		/*                                           `--- current week
+		 */
 	}
 
 	if (!until) {
