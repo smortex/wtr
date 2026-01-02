@@ -85,9 +85,9 @@ print_duration_color(int duration, int min, int max)
 		} else {
 			relative_ratio = 1.0 - (float) (duration - min) / (max - min);
 		}
-		int red = relative_ratio * (155 - 33) + 33;
-		int green = relative_ratio * (233 - 110) + 110;
-		int blue = relative_ratio * (168 - 57) + 57;
+		int red = (relative_ratio * (155 - 33)) + 33;
+		int green = (relative_ratio * (233 - 110)) + 110;
+		int blue = (relative_ratio * (168 - 57)) + 57;
 		wprintf(L"\033[48;2;%d;%d;%dm", red, green, blue);
 		if (red + green + blue > 255 * 1.5) {
 			wprintf(L"\033[38;2;101;109;118m");
@@ -611,10 +611,10 @@ wtr_graph(struct database *database, report_options_t options)
 		for (int week = 0; week < nweeks ; week++) {
 			time_t t = add_week(add_day(since, day_of_week), week);
 			if (t < since || t >= until) {
-				durations[week * 7 + day_of_week] = 0;
+				durations[(week * 7) + day_of_week] = 0;
 			} else {
 				int duration = database_get_duration(database, t, add_day(t, 1), sql_filter->str);
-				durations[week * 7 + day_of_week] = duration;
+				durations[(week * 7) + day_of_week] = duration;
 				total += duration;
 				if (duration > max) {
 					max = duration;
@@ -670,7 +670,7 @@ wtr_graph(struct database *database, report_options_t options)
 		}
 	}
 
-	int median_index = first + (days - first) / 2;
+	int median_index = first + ((days - first) / 2);
 	int median;
 
 	if ((days - first) % 2 == 1) {
