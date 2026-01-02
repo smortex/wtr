@@ -351,10 +351,10 @@ database_project_find_by_name(struct database *database, const char *project)
 			strftime(date, sizeof(date), "%FT%T%z", localtime(&info.created_at));
 			warnx("Project %s was merged into %s on %s.  You should remove it from your configuration.", info.old_project_name, info.new_project_name, date);
 
+			id = database_project_find_by_name(database, info.new_project_name);
+
 			free(info.old_project_name);
 			free(info.new_project_name);
-
-			id = database_project_find_by_name(database, info.new_project_name);
 		}
 	}
 
