@@ -224,7 +224,7 @@ print_summary_duration(const char *label, int duration, int min, int max)
 static void
 usage(int exit_code)
 {
-	fprintf(stderr, "usage: wtr [-d] <command>\n");
+	fputs("usage: wtr [-d] <command>\n", stderr);
 	exit(exit_code);
 }
 
@@ -261,18 +261,18 @@ main(int argc, char *argv[])
 				err(EXIT_FAILURE, "fopen");
 			}
 
-			fprintf(f, "# Define one section per project, and set the \"root\" key to the path or its\n"
-			        "# root directory.\n"
-			        "# Tags can be set by project using the \"tags\" key.\n"
-			        "# Lines starting with a '#' are comments.\n"
-			        "#\n"
-			        "# Examples:\n"
-			        "# [Acme Corporation]\n"
-			        "# root = /home/wile/Projects/ACME\n"
-			        "#\n"
-			        "# [Fast and Furry-ous]\n"
-			        "# root = /nfs/movies/E01\n"
-			        "# tags = tnt;rushes\n");
+			fputs("# Define one section per project, and set the \"root\" key to the path or its\n"
+			      "# root directory.\n"
+			      "# Tags can be set by project using the \"tags\" key.\n"
+			      "# Lines starting with a '#' are comments.\n"
+			      "#\n"
+			      "# Examples:\n"
+			      "# [Acme Corporation]\n"
+			      "# root = /home/wile/Projects/ACME\n"
+			      "#\n"
+			      "# [Fast and Furry-ous]\n"
+			      "# root = /nfs/movies/E01\n"
+			      "# tags = tnt;rushes\n", f);
 
 			fclose(f);
 			wtr_edit();
