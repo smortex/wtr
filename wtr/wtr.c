@@ -409,7 +409,7 @@ report_project_duration(const char *project, int duration, void *user_data)
 	int active = 0;
 	if (data->current) {
 		for (size_t i = 0; i < nprojects; i++) {
-			if (projects[i].active && strcmp((const char *)project, projects[i].name) == 0) {
+			if (projects[i].active && strcmp(project, projects[i].name) == 0) {
 				active += projects[i].active;
 			}
 		}
