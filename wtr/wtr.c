@@ -26,6 +26,12 @@ int minimum_reported_duration = 300;
 static void
 print_duration(int duration)
 {
+	char sign = ' ';
+	if (duration < 0) {
+		sign = '-';
+		duration = abs(duration);
+	}
+
 	int sec = duration % 60;
 	duration /= 60;
 	int min = duration % 60;
@@ -34,13 +40,13 @@ print_duration(int duration)
 	duration /= 24;
 
 	if (duration == 1) {
-		wprintf(L"%3d day  %2d:%02d:%02d", duration, hrs, min, sec);
+		wprintf(L"%c%3d day  %2d:%02d:%02d", sign, duration, hrs, min, sec);
 	} else if (duration > 1) {
-		wprintf(L"%3d days %2d:%02d:%02d", duration, hrs, min, sec);
+		wprintf(L"%c%3d days %2d:%02d:%02d", sign, duration, hrs, min, sec);
 	} else if (hrs > 0) {
-		wprintf(L"         %2d:%02d:%02d", hrs, min, sec);
+		wprintf(L"         %c%2d:%02d:%02d", sign, hrs, min, sec);
 	} else {
-		wprintf(L"            %2d:%02d", min, sec);
+		wprintf(L"            %c%2d:%02d", sign, min, sec);
 	}
 }
 
