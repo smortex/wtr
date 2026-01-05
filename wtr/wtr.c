@@ -21,6 +21,8 @@
 #include "cmd_lexer.h"
 #include "cmd_parser.h"
 
+int minimum_reported_duration = 300;
+
 static void
 print_duration(int duration)
 {
@@ -77,7 +79,7 @@ print_top_months_line(const time_t since, time_t until)
 static void
 print_duration_color(int duration, int min, int max)
 {
-	if (duration > 0) {
+	if (duration >= minimum_reported_duration) {
 		float relative_ratio;
 
 		if (min == max) {
@@ -232,7 +234,7 @@ print_summary_duration(const char *label, int duration, int min, int max)
 static void
 usage(int exit_code)
 {
-	fputs("usage: wtr [-d] <command>\n", stderr);
+	fputs("usage: wtr [-d] [-m <duration>] [<command>]\n", stderr);
 	exit(exit_code);
 }
 
@@ -291,12 +293,13 @@ main(int argc, char *argv[])
 
 	struct option longopts[] = {
 		{ "debug", no_argument, NULL, 'd' },
+		{ "minimum-duration", required_argument, NULL, 'm' },
 		{ "help", no_argument, NULL, 'h' },
 		{ NULL, 0, NULL, 0 },
 	};
 
 	int ch;
-	while ((ch = getopt_long(argc, argv, "dh", longopts, NULL)) != -1) {
+	while ((ch = getopt_long(argc, argv, "dhm:", longopts, NULL)) != -1) {
 		switch (ch) {
 		case 'd':
 			yydebug = 1;
@@ -307,6 +310,14 @@ main(int argc, char *argv[])
 			}
 			exit(EXIT_SUCCESS);
 			break; /* NOTREACHED */
+		case 'm': {
+			char *rest;
+			minimum_reported_duration = strtol(optarg, &rest, 10);
+			if (*rest) {
+				errx(EXIT_FAILURE, "%s: not a number", optarg);
+			}
+		}
+		break;
 		default:
 			usage(EXIT_FAILURE);
 		}
@@ -415,7 +426,7 @@ report_project_duration(const char *project, int duration, void *user_data)
 		}
 	}
 
-	if (duration > 0 || active) {
+	if (duration >= minimum_reported_duration || active) {
 		wprintf(data->wformat_string, project);
 		print_duration(duration);
 		if (active) {
@@ -592,11 +603,14 @@ graph_stats(struct database *database, time_t since, time_t until, int nweeks, c
 			} else {
 				int duration = database_get_duration(database, t, add_day(t, 1), sql_filter);
 				durations[(week * 7) + day_of_week] = duration;
+				if (duration < minimum_reported_duration) {
+					continue;
+				}
 				*total += duration;
 				if (duration > *max) {
 					*max = duration;
 				}
-				if (duration > 0 && duration < *min) {
+				if (duration < *min) {
 					*min = duration;
 				}
 			}
@@ -699,7 +713,7 @@ wtr_graph(struct database *database, report_options_t options)
 	int first = 0;
 
 	for (int i = 0; i < days; i++) {
-		if (durations[i]) {
+		if (durations[i] >= minimum_reported_duration) {
 			first = i;
 			break;
 		}
