@@ -547,7 +547,7 @@ wtr_report(struct database *database, report_options_t options)
 		until = tomorrow;
 	}
 
-	int longest_name = database_longuest_project_name(database);
+	int longest_name = database_longest_project_name(database);
 	char *format_string;
 	if (asprintf(&format_string, "    %%-%ds ", longest_name) < 0) {
 		err(EXIT_FAILURE, "asprintf");
@@ -625,7 +625,7 @@ graph_stats(struct database *database, time_t since, time_t until, int nweeks, c
 }
 
 GString *
-graph_sql_fliter(report_options_t options)
+graph_sql_filter(report_options_t options)
 {
 	GString *result = g_string_new(NULL);
 
@@ -666,7 +666,7 @@ wtr_graph(struct database *database, report_options_t options)
 		until = tomorrow;
 	}
 
-	GString *sql_filter = graph_sql_fliter(options);
+	GString *sql_filter = graph_sql_filter(options);
 
 	int nweeks = 0;
 	while (add_week(since, nweeks) < until) {
