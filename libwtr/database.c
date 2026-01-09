@@ -168,7 +168,7 @@ database_open(char *filename)
 	}
 
 	if (sqlite3_busy_timeout(res->db, 1000) != SQLITE_OK) {
-		warn("Connet set database busy timeout");
+		warn("Cannot set database busy timeout");
 		sqlite3_close(res->db);
 		free(res);
 		return NULL;
@@ -202,7 +202,7 @@ database_version(struct database *database)
 }
 
 int
-database_longuest_project_name(struct database *database)
+database_longest_project_name(struct database *database)
 {
 	int res;
 

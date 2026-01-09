@@ -9,7 +9,7 @@ char		*database_path(void);
 struct database	*database_open(char *filename);
 void		 database_close(struct database *database);
 
-int		 database_longuest_project_name(struct database *database);
+int		 database_longest_project_name(struct database *database);
 void		 database_merge(struct database *database, struct database *import);
 void		 database_merge_project(struct database *database, const char *old_project, const char *new_project);
 int		 database_host_find_by_name(struct database *database, const char *host);
