@@ -470,7 +470,7 @@ report_period(struct database *database, report_options_t options, time_t since,
 	total_duration = database_get_duration_by_project(database, since, stop, project_sql_filter, host_sql_filter, report_project_duration, &data);
 
 	wprintf(L"    ");
-	for (int i = 0; i < longest_name + 18; i++) {
+	for (int i = 0; i < longest_name + 19; i++) {
 		wprintf(L"-");
 	}
 	wprintf(L"\n");
