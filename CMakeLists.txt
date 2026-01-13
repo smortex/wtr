@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION "3.27")
-project("wtr")
+project("wtr" VERSION "1.0.0")
 include(CTest)
 
 if (CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
