@@ -416,6 +416,7 @@ wtr_list_projects(struct database *database)
 struct report_project_duration_data {
 	wchar_t *wformat_string;
 	int current;
+	int total_duration;
 };
 
 static void
@@ -433,6 +434,8 @@ report_project_duration(const char *project, int duration, void *user_data)
 	}
 
 	if (duration >= minimum_reported_duration || active) {
+		data->total_duration += duration;
+
 		wprintf(data->wformat_string, project);
 		print_duration(duration);
 		if (active) {
@@ -465,9 +468,9 @@ report_period(struct database *database, report_options_t options, time_t since,
 	struct report_project_duration_data data = {
 		.wformat_string = wformat_string,
 		.current = current,
+		.total_duration = 0,
 	};
-	int total_duration = 0;
-	total_duration = database_get_duration_by_project(database, since, stop, project_sql_filter, host_sql_filter, report_project_duration, &data);
+	database_get_duration_by_project(database, since, stop, project_sql_filter, host_sql_filter, report_project_duration, &data);
 
 	wprintf(L"    ");
 	for (int i = 0; i < longest_name + 19; i++) {
@@ -475,7 +478,7 @@ report_period(struct database *database, report_options_t options, time_t since,
 	}
 	wprintf(L"\n");
 	wprintf(wformat_string, "Total");
-	print_duration(total_duration);
+	print_duration(data.total_duration);
 	wprintf(L"\n");
 
 	if (!options.next) {

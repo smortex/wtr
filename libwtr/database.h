@@ -20,6 +20,6 @@ int		 database_project_find_by_name(struct database *database, const char *proje
 int		 database_project_find_or_create_by_name(struct database *database, const char *project);
 void		 database_project_add_duration(struct database *database, int project_id, time_t date, int duration);
 int		 database_get_duration(struct database *database, time_t since, time_t until, const char *sql_filter);
-int		 database_get_duration_by_project(struct database *database, time_t since, time_t until, char *project_sql_filter, char *host_sql_filter, void (*callback)(const char *project, int duration, void *data), void *data);
+void		 database_get_duration_by_project(struct database *database, time_t since, time_t until, char *project_sql_filter, char *host_sql_filter, void (*callback)(const char *project, int duration, void *data), void *data);
 
 #endif

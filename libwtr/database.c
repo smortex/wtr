@@ -461,11 +461,9 @@ database_get_duration(struct database *database, time_t since, time_t until, con
 	return duration;
 }
 
-int
+void
 database_get_duration_by_project(struct database *database, time_t since, time_t until, char *project_sql_filter, char *host_sql_filter, void (*callback)(const char *project, int duration, void *data), void *data)
 {
-	int total_duration = 0;
-
 	char *sql = NULL;
 
 	if (asprintf(&sql, "SELECT name, (SELECT COALESCE(SUM(duration), 0) FROM activity WHERE projects.id = project_id AND date >= %ld AND date < %ld%s) FROM projects %s ORDER BY LOWER(projects.name)", since, until, host_sql_filter, project_sql_filter) < 0) {
@@ -487,7 +485,6 @@ database_get_duration_by_project(struct database *database, time_t since, time_t
 		} else {
 			errx(EXIT_FAILURE, "sqlite3_step: %s", sqlite3_errstr(res));
 		}
-		total_duration += sqlite3_column_int(stmt, 1);
 	}
 
 	if ((res = sqlite3_finalize(stmt)) != SQLITE_OK) {
@@ -495,8 +492,6 @@ database_get_duration_by_project(struct database *database, time_t since, time_t
 	}
 
 	free(sql);
-
-	return total_duration;
 }
 
 struct import {
